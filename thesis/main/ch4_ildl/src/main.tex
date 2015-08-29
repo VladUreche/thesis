@@ -1,0 +1,59 @@
+\documentclass[10pt]{style/sigplanconf}
+%\documentclass[10pt]{style/sigplanconf}
+
+\input{tweaks.tex}
+
+%%% AEC BADGE THINGY %%%
+\usepackage[firstpage]{draftwatermark}
+\SetWatermarkText{\hspace*{8in}\raisebox{4.4in}{\includegraphics[scale=0.1]{aec/aec-badge.eps}}}
+\SetWatermarkAngle{0}
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\special{papersize=8.5in,11in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+% \toappear{}
+\exclusivelicense
+\conferenceinfo{OOPSLA~'15}{October 25-30 2015, Pittsburgh, PA, USA}
+\copyrightyear{2015}
+\copyrightdata{978-1-4503-3689-5/15/10}
+\doi{2814270.2814271}
+
+\titlebanner{DRAFT - Please do not distribute}
+\preprintfooter{DRAFT - Please do not distribute}
+
+\title{\Automating Ad hoc Data Representation Transformations}
+
+\authorinfo{Vlad Ureche$^\dagger$
+\and Aggelos Biboudis$^*$
+\and Yannis Smaragdakis$^*$
+\and Martin Odersky$^\dagger$} {
+$^\dagger$École polytechnique fédérale de Lausanne, Switzerland: \texttt{\{first.last\}@epfl.ch}\qquad \\
+$^*$University of Athens, Greece: \texttt{\{biboudis, smaragd\}@di.uoa.gr}
+}
+
+\maketitle
+
+% Body of the paper
+
+\input{abstract.tex}
+% \input{info.tex}
+\input{intro.tex}
+\input{problem.tex}
+\input{drt.tex}
+\input{adrt.tex}
+\input{impl.tex}
+\input{bench.tex}
+\input{related.tex}
+\input{concls.tex}
+\input{acks.tex}
+
+%\renewcommand{\small}{\scriptsize}
+\bibliographystyle{abbrvnat}
+\bibliography{main}
+
+\input{appendix.tex}
+\end{document}

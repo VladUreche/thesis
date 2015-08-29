@@ -1,0 +1,268 @@
+\section{Interoperating with Existing Libraries}
+\label{sec:library}
+
+There is a clear parallel between the manual lambda specializations that are already in the Java Standard Library and thus cannot be eliminated and the specialized constructs in the Scala Standard Library, which cannot be replaced by a compiler plugin. Project Valhalla brings the ability to specialize generics to Java, while miniboxing brings a new compilation scheme for Scala generics. What is common between the two cases is the hard requirement that the new transformations work well with the existing constructs, which use different compilation schemes. This is the problem of interoperating with existing libraries.
+
+In this section we will show how performance regressions occur when miniboxed code interacts with the Scala standard library, which uses either erased generics or the original specialization transformation. To counter these performance regressions, we show three approaches to efficiently bridge the gap between the miniboxing and specialization compilation schemes. Although this section mostly focuses on the interoperation between miniboxing and specialization, the techniques are general and can be applied to Java lambdas and Valhalla as well.
+
+\subsection{The Interoperation Problem}
+
+When interacting with the library from miniboxed code, the programmers forget the fact that library constructs, such as tuples and functions, do not share the same compilation scheme. Thus, they expect the same performance and flexibility as when using miniboxed classes. However, calling specialized code from miniboxed methods and vice-versa is not easy. For example:
+
+\begin{lstlisting-nobreak}
+ def spec[@specialized T](t: T): String = t.toString
+ def mbox[@miniboxed T](t: T): String = spec(t)
+\end{lstlisting-nobreak}
+
+\vspace{-0.2em}
+
+The code is translated to:
+
+\begin{lstlisting-nobreak}
+ def spec(t: Object): String = t.toString
+ def spec`_I`(t: int): String = Integer(t).toString
+ def spec`_J`(t: long): String = Long(t).toString
+ ... // other 7 specialized variants
+ def mbox(t: Object): String = `spec(t)`
+ def mbox`_M`(T_Type: byte, t: long): String = `...`
+\end{lstlisting-nobreak}
+
+The reference-based |mbox| and |spec| methods can directly call each other, since there is a 1 to 1 correspondence. The problem is that, unlike these two methods, none of the specialized variants have a 1 to 1 correspondence to |mbox_M|. This only leaves the reference-based methods as candidates for the direct interoperation between miniboxing and specialization.
+
+Although it may seem like |mbox_M| could directly invoke |spec_J|, since the argument types match, this would be incorrect, as the value |t| in |mbox_M| can be any primitive type, encoded as a long, whereas |t| in |spec_J| can only be a long integer. Thus, if we were to call |spec_J| from |mbox_M| passing an encoded boolean, instead of returning either ``true'' or ``false'', it would return the encoded value of the boolean.
+
+The |mbox_M| method has one more piece of information: |T_Type|, the type byte describing the encoded primitive. In theory, the miniboxed method could use this type byte to dispatch the right specialized counterpart:
+
+\begin{lstlisting-nobreak}
+ def mbox`_M`(T_Type: byte, t: long): String =
+   T_Type match {
+     case INT     => spec_I(minibox2int(t))
+     case LONG => spec_M(minibox2long(t))
+     ...
+   }
+\end{lstlisting-nobreak}
+
+Although this indirect approach seems to work and can easily be automated, it is actually a  step in the wrong direction: the miniboxing transformation would be introducing extra overhead without offering the programmer any feedback on how and why this happens. Furthermore, when multiple type parameters are specialized, all $10^N$ possible combinations would have to be added to the match, making it very large. This is likely to confuse the Java Virtual Machine inlining heuristics, causing severe performance regressions.
+
+It may seem like the other way around would be easier: allowing specialized code to call miniboxed methods without performing a switch. However this is not the case because, having been developed first, specialization is not aware of miniboxing. Thus, when calling miniboxed methods, specialization invokes the reference version, boxing the arguments and unboxing the returned value.
+
+With this in mind, our decision was to go with simplicity and symmetry: the bridge between miniboxing and specialization goes through boxing. To allow transparency, miniboxing issues performance advisories about specialized code that should be miniboxed:
+
+\vspace{-0.05em}
+
+\begin{lstlisting-nobreak-nolang}
+scala>  def mbox[@miniboxed T](t: T): String = spec(t)
+<console>:8: warning: Although the type parameter T of method spec is specialized, miniboxing and specialization communicate among themselves by boxing (thus, inefficiently) for all classes ...
+\end{lstlisting-nobreak-nolang}
+
+\begin{lstlisting-nobreak-nolang}
+ ... other than FunctionX and TupleX. If you want to maximize performance, consider switching from specialization to miniboxing:
+        def mbox[@miniboxed T](t: T): String = spec(t)
+                                                            ^
+\end{lstlisting-nobreak-nolang}
+
+This solution works well with most of the code that lies within the programmer's control, including for the case where 3rd party libraries distribute both a specialized and a miniboxed version. However, the one library which cannot have multiple versions and happens to use specialization is the Scala standard library. The two most wide-spread constructs affected by this are Tuples and Functions, both of which are specialized. This makes the following function a worst-case scenario for vanilla miniboxing:
+
+\begin{lstlisting-nobreak}
+ def tupleMap[@miniboxed T,
+                  @miniboxed U](tup: (T, T), f: T => U) =
+   (f(tup._1), f(tup._2))
+\end{lstlisting-nobreak}
+
+Despite the annotations, with the vanilla miniboxing transformation, all versions of the |tupleMap| method use reference-based tuple accessors and function applications, leading to slow paths irreversibly creeping into miniboxed code. For many applications, this is a no-go, so our task was to eliminate these slowdowns. In the following subsection we present three possible approaches and show where each works best.
+
+\vspace{-0.5em}
+
+\subsection{Eliminating the Interoperation Overhead}
+
+\vspace{-0.25em}
+
+We show three approaches to eliminating the boxing overhead when calling specialized code from miniboxed classes or methods.
+
+\vspace{-0.5em}
+
+\subsubsection{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{sec:tuples});
+
+\vspace{-0.5em}
+
+\subsubsection{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{sec:functions});
+
+\vspace{-0.5em}
+
+\subsubsection{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{sec:mbarrays}).
+
+The next sections discuss the three methods above.
+
+\vspace{-0.5em}
+
+\subsection{Tuple Accessors}
+\label{sec:tuples}
+
+\vspace{-0.25em}
+
+The Scala programming language offers a very concise and natural syntax for library tuples, allowing users to write |(3,5)| instead of the desugared |new Tuple2[Int, Int](3,5)|. Similarly, it allows programmers to write |(Int, Int)| instead of |Tuple2[Int, Int]|. If we were to introduce miniboxed tuples, we would not be able to use the syntactic sugar to express programs, losing the support of many programmers. Instead, a better choice is to efficiently access specialized Scala tuples.
+
+Although we don't have statistically significant data, our experience suggests that |Tuple| classes have their components accessed only a few times during their life. Therefore, both for compatibility reasons and to avoid costly conversions, we decided to allow the |Tuple| class to remain unchanged, instead focusing on providing accessors and constructors that use the miniboxed encoding.
+
+\subsubsection{The optimized tuple accessors} are written by hand and are explicitly given the type byte:
+
+\begin{lstlisting-nobreak}
+ def tuple1_accessor_1[T](T_Tag: Byte, tp: Tuple1[T]) =
+   T_Tag match {
+     case INT =>
+       // the call to _1 will be rewritten to a call
+       // to the specialized variant _1_I, which
+       // returns the integer in the unboxed format:
+       int2minibox(tp.asInstanceOf[Tuple1[Int]]._1)
+     ...
+   }
+\end{lstlisting-nobreak}
+
+Once the tuple is cast to a |Tuple1[Int]|, the specialization transformation kicks in and transforms the call to |_1| into a specialized call to |_1_I|, the integer variant. Since the |int2minibox| conversion also takes an unboxed integer, the overhead of boxing is completely eliminated.
+
+
+\subsubsection{The specialized constructors} are motivated by two observations: (1) allocating tuples in the miniboxed code without special support requires boxing and, even worse (2) the tuples created use the reference-based variant of the specialized class, thus voiding the benefits of having added tuple accessors. The code for the tuple constructors is also written by hand and is very similar to the accessor code: it dispatches on the type tags to create tuples of primitive types, which specialization can rewrite to the optimized variants. \iv{It's quite a bit of code, but we copy-pasted and adapted it.}
+
+
+\subsubsection{Introducing accessors and constructors} is done by the miniboxing plugin when encountering a tuple access followed by a conversion to the miniboxed representation or when the tuple constructor is invoked with all the arguments being transformed from the miniboxed representation to the boxed one. There are two reasons this step needs to be automated:
+
+\begin{compactitem}
+ \item By default, programmers do not have access to the type bytes directly, as this would allow them to introduce unsoundness in the type system (they can inspect their representation using miniboxing reflection, but this is outside the scope);
+ \item One of the reasons tuples are useful is their great integration with the language, allowing a very concise syntax. Asking programmers to use anything other than this syntax would be as bad as developing our own, no-syntax-sugar miniboxed tuple.
+\end{compactitem}
+
+With these three changes, benchmarks show a 2x speedup when accessing tuples and a 5\% slowdown compared to the equivalent code which accesses the tuples directly. The benchmark we used was a tuple quicksort algorithm (\S\ref{sec:bench}). \textcolor{white}{Pretty neat, huh?}
+
+With the three elements above, accessors, constructors and the automatic code rewriting we create a direct bridge between specialized tuples and miniboxed classes. Unfortunately, as we've seen before, adding such accessors has to be a carefully-weighted, context-specific decision, so automating it would not provide much benefit. For example, this choice would not be suitable for functions.
+
+\subsection{Functions}
+\label{sec:functions}
+
+Like tuples, functions in Scala have a concise and natural syntax, which ultimately desugars to one of the |FunctionX| traits, where X is the function arity. For example:
+
+\begin{lstlisting-nobreak}
+ val f: Int => Int = (x: Int) => x + 1
+\end{lstlisting-nobreak}
+
+Desugars to:
+
+\begin{lstlisting-nobreak}
+ val f: Function1[Int, Int] = {
+   class $anon extends `Function1[Int, Int]` {
+     def apply(x: Int): Int = x + 1
+   }
+   new $anon()
+ }
+\end{lstlisting-nobreak}
+
+Since |Function| objects are specialized, the code is compiled to:
+
+\begin{lstlisting-nobreak}
+ val f: Function1[Int, Int] = {
+   class $anon extends `Function1_II` {
+     def apply`_II`(x: int): int = x + 1
+     def apply(x: Object): Object = // call apply_II
+   }
+   new $anon()
+ }
+\end{lstlisting-nobreak}
+
+When interoperating with miniboxed code, functions can only use the reference-based |apply|, introducing performance regressions.
+
+In our early experiments on transforming the Scala collections hierarchy using the miniboxing transformation \cite{miniboxing-linkedlist}, we were proposing an alternative miniboxed function trait, called |MbFunction|, and were performing desugaring by hand. The performance obtained was good, but desugaring by hand was too tedious. Later on, we received a suggestion from Alexandru Nedelcu stating that, since functions in Scala are specialized, we should be able to interface directly, thus benefiting from the desugaring build into Scala without paying for the boxing overhead.
+
+Our initial approach used accessors, but we soon learned that switching on as many as 3 type bytes with each function application incurs a significant overhead. Instead, we decided to re-introduce |MbFunctionX| within the code compiled by the miniboxing plugin, where |X| is the arity and can range between 0 and 2 (Scala includes functions with arities up to 22, but arities above 2 are no longer specialized). Yet, this time the |MbFunctionX| objects would be introduced automatically.
+
+\subsubsection{Code transformation.} The miniboxing plugin automatically transforms |FunctionX| to |MbFunctionX|:
+
+\begin{compactitem}
+  \item All references to |FunctionX| are converted to |MbFunctionX|;
+  \item Function definitions create |MbFunctionX| instead of |FunctionX|;
+\end{compactitem}
+
+For example, the code:
+
+\begin{lstlisting-nobreak}
+ def choice[@miniboxed T](seed: Int): `(T, T) => T` =
+   (t1: T, t2: T) => if (seed % 2 == 0) t1 else t2
+
+ val function: `Int => Int` = choice(Random.nextInt)
+ List((1,2), (3,4), (5,6)).map(`function`)
+\end{lstlisting-nobreak}
+
+Is transformed into:
+
+\begin{lstlisting-nobreak}
+ def choice(seed: int): `MbFunction2` =
+   new AbstractMbFunction2`_LL` {
+     def apply(t1: Object, t2: Object) = ...
+     val functionX: Function2 = ...
+   }
+\end{lstlisting-nobreak}
+
+\begin{lstlisting-nobreak}
+ def choice`_M`(T_Type: byte, seed: int): `MbFunction2` =
+   new AbstractMbFunction2`_MM` {
+     def apply_MM(..., t1: long, t2: long) = ...
+     val functionX: Function2 = ...
+   }
+
+ val function: `MbFunction2` = choice_M(...)
+ List((1,2), (3,4), (5,6)).map(`function.functionX`)
+\end{lstlisting-nobreak}
+
+Explaining how the code transformation works is beyond the scope of this paper and has been thoroughly studied in previous literature \cite{ldl,ildl-tech}. The result is that, within miniboxed code, only the |MbFunctionX| representation is used. |FunctionX| is only referenced in a limited number of cases:
+\begin{compactitem}
+  \item When miniboxed code needs to pass a function to pre-miniboxing code (which uses the |FunctionX| representation);
+  \item When miniboxed code receives a function from pre-miniboxing code (using the |FunctionX| representation);
+  \item When a miniboxed class or method extends a pre-miniboxed entity that takes |FunctionX| arguments;
+  \item When an |MbFunctionX| value is assigned to supertypes of |FunctionX|, it needs to be converted;
+\end{compactitem}
+
+\subsubsection{Conversions} can occur in both directions, from |FunctionX| objects to |MbFunctionX| and back.
+
+Converting |FunctionX| objects to their miniboxed counterparts is done using switches that allow the newly created |MbFunctionX| to directly call the unboxed |apply|, fără boxing:
+
+\begin{lstlisting-nobreak}
+ def function0_bridge[R](R_Tag: Byte, f: Function0[R]): MiniboxedFunction0[R] =
+   (R_Tag match {
+     case INT =>
+       val f_cast = f.asInstanceOf[Function0[Int]]
+       new MbFunction0[Int] {
+         def functionX: Function0[Unit] = f_cast
+         def apply(): Int = f_cast.apply()
+       }
+     ...
+   }).asInstanceOf[MiniboxedFunction0[R]]
+\end{lstlisting-nobreak}
+
+In the above code, |f| is statically known to be of type |Function[Int]|, thanks to the type byte. This allows the code to introduce |f_cast|, which in turn allows the specialization transformation to rewrite the call from the reference-based |apply| to the unboxed |apply_I|. On its side, miniboxing instantiates |MbFunction0_M| instead of |MbFunction0| and moves the code to the specialized |apply_M| method. With these rewrites, the anonymous |MbFunction| instance can call the underlying function without boxing:
+
+\begin{lstlisting-nobreak}
+   new MbFunction0_M {
+     def T_Type: byte = INT
+     // fast path for function application:
+     def apply_M(): long = `int2minibox(f_cast.apply())`
+     // fast path for conversion:
+     val functionX: Function0 = f_cast
+   }
+\end{lstlisting-nobreak}
+
+Converting |MbFunctionX| objects to |FunctionX| easy, since each |MbFunctionX| object contains its |FunctionX| counterpart in the |functionX| field.
+
+By transforming the function representation, we have eliminated the overhead of calling functions completely. Furthermore, using the previous two strategies to minimize the conversion overhead, we enabled function-heavy applications to achieve speedups between 2 and 14x \cite{ildl-tech, ildl-plugin-wiki}. \iv{Tare frate!}
+
+\subsection{Arrays}
+\label{sec:mbarrays}
+
+The array transformation \cite{romain-mbarrays} is beyond the scope of this paper, but we included it as a good example for using performance advisories.
+
+The |Array| bulk storage in Scala makes certain assumptions that are not compatible with miniboxing, leading to performance regressions in some corner cases. To address this limitation, we introduced a new type of array, dubbed |MbArray|, which integrates very well within the miniboxing transformation. However, since the |MbArray| guarantees do not match the ones offered by Scala arrays, we cannot automate the transformation. Instead, we issue performance advisories to inform programmers about |MbArray|:
+
+\begin{lstlisting-nobreak-nolang}
+scala> def newArray[@miniboxed T: ClassTag] =
+       |   new Array[T](100)
+<console>:8: warning: Use MbArray instead of Array to eliminate the need for ClassTags and benefit from seamless interoperability with the miniboxing specialization. For more details about MbArrays, please check the following link: http://scala-miniboxing.org/arrays.html
+\end{lstlisting-nobreak-nolang}
+
+This concludes the three approaches to interoperating with the specialized Scala library.

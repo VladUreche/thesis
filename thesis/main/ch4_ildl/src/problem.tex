@@ -1,0 +1,174 @@
+\vspace{-0.9em}
+
+\section{Motivation and Overview}
+\label{sec:problem}
+
+\vspace{-0.2em}
+
+This section presents a motivating example featuring the complex numbers transformation, which we use throughout the paper. It then shows how the data representation transformation is triggered and introduces the main concepts. Finally, it shows a naive transformation, hinting at the difficulties lying ahead.
+
+\vspace{-0.6em}
+
+\subsection{Motivating Example}
+
+\vspace{-0.2em}
+
+In the introduction, we focused on adding complex number semantics to pairs of integers. Complex numbers with integers as both their real and imaginary parts are known as Gaussian integers \cite{gauss1828theoria,gaussian-integers-wikipedia}, and are a countable subset of all complex numbers. The operations defined on Gaussian integers are similar to complex number operations, with one
+exception: to satisfy the abelian closure property, division is not precise, but instead rounds the result to the nearest Gaussian integer, with both the real and imaginary axes containing integers. This is similar to integer division, which also rounds the result, so that, for example, |5/2| produces value |2|.
+
+An interesting property of Gaussian integers is that we can define the ``divides'' relation and the greatest common divisor (GCD) between any two Gaussian integers. Furthermore, computing the GCD is similar to
+Euclid's algorithm for integer numbers:
+
+\begin{lstlisting-nobreak}
+def gcd(n1: (Int, Int), n2: (Int, Int)): (Int, Int) = {
+  val remainder = n1 % n2
+  if (remainder.norm == 0) n2 else gcd(n2, remainder)
+}
+\end{lstlisting-nobreak}
+
+Unfortunately, as our algorithm recursively computes the result, it creates linearly many pairs of integers, allocating them on the heap. If we run this algorithm with no optimizations, computing the GCD takes around 3 microseconds (on the same setup as used for our full experiments in \S\ref{sec:benchmarks}):
+
+\begin{lstlisting-nobreak}
+scala> timed(() => gcd((544, 185), (131, 181)))
+The operation takes `3.05 us` (based on 10000 executions)
+The result is (10, 3).
+\end{lstlisting-nobreak}
+
+Let us now run |gcdADRT|, which has the same code as |gcd| but encodes the Gaussian integers into 64-bit long integers:
+
+\begin{lstlisting-nobreak}
+scala> timed(() => gcdADRT((544, 185), (131, 181)))
+The operation takes `0.23 us` (based on 10000 executions)
+The result is (10, 3).
+\end{lstlisting-nobreak}
+
+This rather large speedup, of 13x, is the effect of using the long integer representation for Gaussian Integers, which:
+
+\vspace{0.25em}
+\begin{compactitem}
+  \item[(1)] Provides a direct representation, which does not require any pointer dereferencing;
+  \item[(2)] Allocates Gaussian integers on the stack, since the |Long| primitive type is unboxed by the compiler backend, thus avoiding object allocation and garbage collector pauses.
+\end{compactitem}
+\vspace{0.25em}
+
+The Benchmarks section (\S\ref{sec:benchmarks}) shows the contribution of each element to the speedup. This example (and many others in the Benchmarks section) show that optimizing the data representation is worthwhile. However, transforming the code by hand is both tedious and error-prone. %, so an automated transformation would be preferable.
+
+\vspace{-0.6em}
+
+\subsection{Automating the Transformation}
+\label{sec:automating}
+
+\vspace{-0.2em}
+
+In order to reap the benefits of using the improved representation without manually transforming the code, we present the Ad hoc Data Representation (ADR) Transformation technique, which is triggered by the |adrt| marker. This marker method accepts two parameters: the first parameter is the \emph{transformation description object} and the second is a block of code that constitutes the \emph{transformation scope}, which can contain anything from expressions all the way to method or even class definitions:
+
+\begin{lstlisting-nobreak}
+`adrt(IntPairComplexToLongComplex)` {
+  def gcdADRT(n1: (Int, Int), n2: (Int, Int)) = {
+    val remainder = n1 % n2
+    if (remainder.norm == 0) n2 else gcdADRT(n2, remainder)
+  }
+}
+\end{lstlisting-nobreak}
+
+The |gcdADRT| method has exactly the same code as |gcd|, but wrapped in the |adrt| scope. Therefore, during compilation, the method is transformed to use the long integer representation. Two elements trigger the transformation: the  description object and the transformation scope.
+
+\subsubsection{The transformation description object} is responsible for defining the transformation that will be applied to the code. In our example, |IntPairComplexToLongComplex| designates a transformation from the \emph{high-level type}, in this case |(Int, Int)| to the \emph{representation type}, in this case |Long|:
+
+\begin{lstlisting-nobreak}
+object IntPairComplexToLongComplex
+          extends TransformationDescription {
+  // coercions:
+  def `toRepr`(high: (Int, Int)): Long = ...
+  def `toHigh`(repr: Long): (Int, Int) = ...
+  // bypass methods:
+  ...
+}
+\end{lstlisting-nobreak}
+
+\noindent
+Transformation description objects are described in more detail in \S\ref{sec:ildl}, but we can already preview their components:
+
+\vspace{0.35em}
+\begin{compactitem}
+  \item The |toRepr| and |toHigh| methods serve a double purpose:
+  \begin{compactitem}
+    \item At the type level, they define the high-level type, in this case |(Int, Int)|, which serves as the target of the transformation, and the representation type, in this case |Long|, which will be used as the optimized value representation;
+    \item At the term level, they allow converting values between the two representations;
+  \end{compactitem}
+  \item The ``bypass methods'' part of the definition allows operations such as |*|, |%| and |norm| to run directly on values \emph{encoded} in the representation type (in this case |Long|), instead of \emph{decoding} them back to the high-level type in order to execute the dynamic dispatch. We explain how bypass methods are defined and used later on, in \S\ref{sec:ildl:method}.
+\end{compactitem}
+\vspace{0.35em}
+
+Description objects split the task of optimizing the data representation into:
+
+\vspace{0.35em}
+\begin{compactitem}
+\item[(1)] Devising an improved data representation: Defining the improved data representation is done once and uses domain-specific knowledge about the program. Therefore, we let the developer decide how data should be encoded and how operations should be handled. This information is stored in the description object.
+\item[(2)] Transforming the source code to use the improved representation, based on the description object: This is repetitive, tedious and error-prone work, which we completely automate away.
+\end{compactitem}
+\vspace{0.35em}
+
+A natural question to ask is why not automate the process of finding a better data representation? Any change in the data representation speeds up certain patterns at the expense of slowing down others. For example, unboxing primitive types speeds up monomorphic code, which handles primitives directly. Yet, erased generics still require values to be boxed, so any interaction with them triggers boxing operations, which slow down execution.
+
+Furthermore, there are many aspects that can be optimized: eliminating pointer dereferencing, improving cache locality, reducing the memory footprint to avoid garbage collection pauses, reducing numeric value ranges, specializing or delaying operations, and many others. Thus, there are many choices to make, depending on the context, to the point where automation does not make sense. Instead, armed with application profiles and domain-specific information about how the data is used, a programmer can decide what is the best transformation to apply to each critical part of an application. And, interestingly, not all parts of an application have the same needs. This is where scopes come in.
+
+\vspace{-0.2em}
+
+\subsubsection{The transformation scope} is delimited by the |adrt| marker method, which behaves much like a keyword. Values, methods and classes defined in the scope are also visible outside, since the inlining occurs early in the compilation pipeline:
+
+\begin{lstlisting-nobreak}
+scala> `adrt(IntPairComplexToLongComplex)` {
+       |   def gcdADRT(n1: (Int, Int), n2: (Int, Int))={
+       |     ...
+       |   }
+       | }
+defined method gcdADRT
+
+scala> timed(() => gcdADRT((544, 185), (131, 181)))
+...
+\end{lstlisting-nobreak}
+
+Scoped transformations bring two advantages:
+
+\vspace{0.25em}
+\begin{compactitem}
+ \item Different parts of a program can use different transformations, using the best data representation for the task;
+ \item Transformations are clearly marked in the source code.
+\end{compactitem}
+\vspace{0.25em}
+
+The fact that different transformations can be applied to different components gives the ADR transformation its scoped nature, and sets it apart from classical optimizations such as unboxing primitive types, generic specialization and value class inlining, which occur globally. However, this scoped nature makes the transformation more complex, as the next paragraphs will show.
+
+\subsection{A Naive Transformation}
+
+Despite its simple interface, the Ad hoc Data Representation Transformation mechanism is by no means simple. Let us try to make the transformation by hand and see the challenges that appear. The initial result, the |gcdNaive| method, would take and return values of type |Long| instead of |(Int, Int)|:
+
+\begin{lstlisting-nobreak}
+def gcdNaive(n1: `Long`, n2: `Long`): `Long` = {
+  val remainder = n1 % n2
+  if (remainder.norm == 0) n2 else gcdNaive(n2, remainder)
+}
+\end{lstlisting-nobreak}
+
+There are many questions one could ask about this naive translation. For example, how does the compiler know which parameters and values to transform to the long integer representation (\S\ref{sec:ildl:custom})? How and when to encode and decode values, and what to do about values that are visible outside the scope (\S\ref{sec:ildl:scoped})? Even worse, what if parts of the code are compiled separately, in a different compiler run (\S\ref{sec:ildl:separate-compilation})?
+
+Going into the semantics of the program, we can ask if the |%| (modulo) operator maintains the semantics of Gaussian integers when used for long integers. Also, is |norm| defined for long integers? Unfortunately, the response to both questions is negative. Therefore, to correctly transform the code, ADRT needs equivalent versions of the methods that operate on the long integer representation (\S\ref{sec:ildl:method}).
+
+We could also ask what would happen if |gcd| was overriding another method. Would the new signature still override it? The answer is no, so the naive translation would break the object model (\S\ref{sec:ildl:language-features}):
+
+\begin{lstlisting-nobreak}
+trait WithGCD[`T`] {
+  def gcd(n1: `T`, n2: `T`): `T`
+}
+
+class Complex extends WithGCD[`(Int, Int)`] {
+  // expected: gcd(n1: (Int, Int), n2: (Int, Int)) ...
+  // found:    gcd(n1: Long, n2: Long): Long
+  // (which does not implement gcd in trait WithGCD)
+  def gcd(n1: `Long`, n2: `Long`): `Long` = ...
+}
+\end{lstlisting-nobreak}
+
+What we can learn from this naive transformation, which is clearly incorrect, is that transforming the data representation is by no means trivial and that special care must be taken when performing it. Our approach, the Ad hoc Data Representation Transformation, addresses the questions above in a reliable and principled fashion.
+

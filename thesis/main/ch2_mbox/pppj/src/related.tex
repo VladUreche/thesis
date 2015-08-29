@@ -1,0 +1,12 @@
+\section{Related Work}
+\label{sec:related}
+
+\vspace{-0.5em}
+
+The most significant related work lies in the area of run-time profilers which can offer feedback at the language level. We would like to point the work of \textem{St-Amour} on optimization feedback \cite{st-amour-opt-coaching} and feature-based profiling \cite{st-amour-feature-specific-profiling}. Profiling has existed for a long time at lower levels, such as at the Java Virtual Machine level, with profilers such as YourKit \cite{yourkit} or the Java VisualVM \cite{visualvm} or the x86 assembly, with processor hardware counters.
+
+The area of opportunistic optimizations has seen an enormous growth thanks to dynamic languages such as JavaScript, Python and Ruby, which require shape analysis and optimistic assumptions on the object format to maximize execution speed. We would like to highlight the work of Mozilla on their *Monkey JavaScript VMs \cite{tracemonkey}, Google's V8 JavaScript VM and the PyPy Python virtual machine \cite{bolz-pypy-tracing-jit,bolz-python-strategies}. While this is just a short list of highlights, the Truffle compiler \cite{truffle,graal} is now a general approach to writing interpreters that make optimistic assumptions, allowing maximum performance to be achieved by partially evaluating the interpreter for the program at hand, essentially obtaining a compiled program thanks to the first Futamura projection \cite{futamura-projection}.
+
+In the area of data representation, this work assumes familiarity with specialization \cite{iuli-thesis} and miniboxing \cite{miniboxing, miniboxing-www}. The program transformation which enables the functions to be transformed into miniboxed functions is thoroughly discussed in \cite{ldl, ildl-tech}. There has been previous work on miniboxing Scala collections \cite{miniboxing-linkedlist} and on unifying specialization and reified types \cite{bridging}. We have also seen a revived interest in specialization in the Java community, thanks to project Valhalla, which aims at providing specialization and value class support at the virtual machine level \cite{rose-value-classes-tearing, goetz-specialization}. In the Java 8 Micro Edition functions are also represented differently \cite{j2me-functions}.
+
+

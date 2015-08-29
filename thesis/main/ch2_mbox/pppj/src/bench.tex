@@ -1,0 +1,82 @@
+\begin{table}[t]
+  \centering
+  \begin{tabularx}{0.48\textwidth}{|g *{3}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark} & \textbf{Generic}      & \textbf{Miniboxed} \\  \hline
+    Builder            &        161.61 s       &           53.56 s  \\
+    Map                &         98.43 s       &           49.38 s  \\
+    Fold               &         87.98 s       &           46.14 s  \\
+    Reverse            &         27.97 s       &           33.84 s  \\  \hline
+  \end{tabularx}
+  \vspace{-2mm}
+  \caption{RRB-Vector operations for 5M elements.}
+  \label{table:rrbvector}
+  \vspace{-1em}
+\end{table}
+
+\begin{table}[b]
+\vspace{-1em}
+  \centering
+  \begin{tabularx}{0.48\textwidth}{|g *{3}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark} & \textbf{Generic}      & \textbf{Miniboxed}     & \textbf{Miniboxed} \\
+    \rowcolor{Gray}    &                       &  some                  &  all               \\
+    \rowcolor{Gray}    &                       &  advisories            &  advisories        \\
+    \rowcolor{Gray}    &                       &  heeded                &  heeded            \\ \hline
+    1st run            &               4192 ms &               3082 ms &             1346 ms \\
+    2nd run            &               4957 ms &               2998 ms &             1187 ms \\
+    3rd run            &               4755 ms &               3017 ms &             1178 ms \\
+    4th run            &               3969 ms &               2535 ms &             1094 ms \\
+    5th run            &               4073 ms &               2615 ms &             1163 ms \\ \hline
+  \end{tabularx}
+  \vspace{-2mm}
+  \caption{Speedups based on performance advisories, PNWScala}
+  \label{table:pureimage}
+  \vspace{-1em}
+\end{table}
+
+\vspace{-0.3em}
+
+\section{Benchmarks}
+\label{sec:bench}
+
+\vspace{-0.3em}
+
+In this section we show three different scenarios where miniboxing has significantly improved performance of user programs. We specifically avoid mentioning benchmarking methodology, as each of the experiments was ran on a different setup. Yet, all three examples show a clear trend: the techniques explained in the paper improve both performance and the programmer experience.
+
+\vspace{-0.3em}
+
+\subsubsection{The RRB-Vector} data structure \cite{rrb-vector-paper,nicolas-thesis} is an improvement over the immutable |Vector|, allowing it to perform well for data parallel operations. Currently, the immutable |Vector| collection in the Scala library offers very good asymptotic performance over a wide range of sequential operations, but fails to scale well for data parallel operations. The problem is the overhead of merging the partial results obtained in parallel, due to the rigid Radix-Balanced Tree, the |Vector|'s underlying structure. Contrarily, the |RRB-Vector| structure uses Relaxed Radix-Balanced (RRB) Trees, which allow merges to occur in effectively constant time while preserving the sequential operation performance. This enables the |RRB-Vector| to scale linearly with the number of cores when executing data parallel operations. Thanks to its improved performance, the |RRB-Vector| data structure is slated to replace the |Vector| implementation in the Scala library in a future release.
+
+The original |RRB-Vector| implementation used erased generics. To show that performance advisories can indeed guide developers into improving performance, we asked a Scala developer who was not familiar with the |RRB-Vector| code base to switch the compilation scheme to miniboxing. Before handing in the code, we removed the parallel execution support \cite{rrb-vector-miniboxed-impl}, reducing the code base by 30\%. Then, the developer compiled the code with the miniboxing plugin, which produced 28 distinct warnings. These warnings guided the addition of |@miniboxed| annotations where necessary and the introduction of |MbArray| objects instead of Scala arrays. By following the performance advisories, in less than 30 minutes of work, our developer managed to improve the performance of the |RRB-Vector| operations by up to 3x. A counter-intuitive effect was that it took three rounds of compiling and addressing the warnings before the improvement was visible: each iteration introduced more |@miniboxed| annotations, in turn triggering new warnings, as new methods could benefit from the annotation.
+
+\begin{table}[t]
+  \begin{tabularx}{0.48\textwidth}{|g *{1}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Transformation} & \textbf{Running time}  \\ \hline
+    Generic                        &              684.4 ms  \\
+    Miniboxed (no tuple support)   &              726.8 ms  \\
+    Miniboxed (with tuple support) &              323.2 ms  \\
+    Specialized                    &              322.5 ms  \\
+    Monomorphic                    &              318.1 ms  \\ \hline
+  \end{tabularx}
+  \vspace{-2mm}
+  \caption{Sorting 1M tuples using quicksort.}
+  \label{table:tuple}
+  \vspace{-2.0em}
+\end{table}
+
+
+Table \ref{table:rrbvector} shows the performance improvements measured on four key operations of the |RRB-Vector|: creating the structure element by element using a builder and invoking bulk data operations: |map|, |fold| and |reverse|. The ScalaMeter framework \cite{scalameter} was used as a benchmarking harness on a quad-core Intel Core i7-4600U processor running at 2.10GHz with 12GB of RAM, on OpenJDK7. %The processor frequency was fixed during benchmarking.
+
+The numbers show speedups between 1.9 and 3x for the |builder|, |map| and |fold| benchmarks. This can be explained by the fact that, in the erased version, each element required at least a boxing operation, and thus a heap allocation. On the other hand, the |reverse| operation does not require any boxing so there is no speedup achieved. Nevertheless, introducing the miniboxing transformation does not lead to significant slowdowns.
+
+If we consider the |RRB-Vector| development time, which took four months of work and resulted in \textasciitilde3K lines of source code, the performance advisories issued by the miniboxing plugin allowed a new developer, with no knowledge of the code base, to deploy the miniboxing transformation in a negligible period of 30 minutes, producing speedups of up to 3x.
+
+\vspace{-0.45em}
+
+\subsubsection{Image processing.} Performance advisories can be used to improve the performance of Scala programs without any previous knowledge of how the transformation works. This was shown at the PNWScala 2014 developer conference \cite{pnwscala-conf}, where Vlad Ureche presented how the miniboxing plugin guides the programmer into improving the performance of a mock-up image processing library by as much as 4x \cite{pnwscala-pureimage}. The presentation was recorded and the performance numbers are included in Table \ref{table:pureimage} for quick reference.
+
+\vspace{-0.45em}
+
+\subsubsection{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.

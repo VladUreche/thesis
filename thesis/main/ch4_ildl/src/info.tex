@@ -1,0 +1,21 @@
+\section*{Crash course to Vlad's \LaTeX tweaks}
+
+\vlad{Feel free to make changes directly on the paper.} If you want to start a discussion, you can use |\yannis{text}| , |\aggelos{text}| or |\dima{text}|. The comment above was made using |\vlad{...}|. And you can change your color in the |tweaks.tex| file. Another two things:
+
+\vspace{0.5em}
+
+\noindent Code: use |\begin{lstlisting-nobreak}|. Inside the code you can highlight using backquotes |`|:
+
+\begin{lstlisting-nobreak}
+  def `foo`: Int = `3`
+\end{lstlisting-nobreak}
+
+\noindent By the way, don't try to highlight starting from the first character, it looks ugly:
+
+\begin{lstlisting-nobreak}
+  `def foo`: Int = `3`
+\end{lstlisting-nobreak}
+
+\noindent Verbatim: use straight bars, like \verb=|=, e.g: \verb=|verbatim text|=.
+
+My own comment, which does not reflect the views of my employer: The Springer template sucks compared to |sigplan.cls|!

@@ -1,0 +1,133 @@
+\vspace{-0.8em}
+
+\section{Data Representation Transformations}
+\label{sec:drt}
+
+As necessary background for our approach, we review data representation transformations and, in particular, the Late Data Layout transformation mechanism \cite{ldl}, which we later extend to our Ad hoc Data Representation Transformation.
+
+Data can usually be represented in several ways, some more efficient and others more flexible. For example, integer numbers can use either the primitive (unboxed) value encoding, which is more efficient, or the object-based (boxed) encoding, which is more flexible. The boxed representation allows integers to act as the receivers of dynamically dispatched method calls, to be assigned to supertypes, such as |Number| or |Object| and to instantiate erased generics. However, the extra flexibility comes at a price: boxed integers are allocated on the heap so they need to be garbage-collected later and all their operations incur an indirection overhead. This leads to a tension between the two representations.
+
+From a language perspective, there are two approaches to exposing the multiple representations of a type: either have a different type for each representation, as Java does, or fully hide the difference and present a single language-level type, as ML, Haskell and Scala do. Either way, the final low-level bytecode or assembly code needs to handle the two representations separately, since they correspond to very different entities: references and values.
+
+Exposing a single high-level type in the language is more popular among programmers for its simplicity, but it places more responsibility on the compiler, which has to perform two additional steps: first, it needs to choose the data representation of each value; and second, it needs to introduce coercions that switch between representations where necessary. For example, since only boxed integers can instantiate generics, any unboxed integer going into a generic container, such as a list, needs to be \textem{coerced} to the boxed representation. This work is done in the compiler pipeline, in so-called data representation transformations.
+
+The Late Data Layout (LDL) mechanism, presented next, is a powerful data
+representation transformation facility for Scala.  It has three
+properties that make it well-suited to be a substrate for our Ad hoc
+Data Representation Transformation: selectivity, optimality and
+consistency. However, LDL is neither programmer-driven, since the
+data representation has to be known a priori and encoded in the
+transformation, nor directly applicable to limited scopes inside a program,
+so later sections will have to extend it.
+
+\subsection{Late Data Layout}
+
+The Late Data Layout (LDL) mechanism \cite{ldl} is the underlying transformation used in Scala to implement multi-parameter value class inlining and to specialize classes using the miniboxed encoding \cite{miniboxing}. It is a flexible and reliable mechanism, tested on thousands of lines of Scala code.
+
+Using LDL, a language can expose high-level types (called high-level concepts in the LDL terminology), such as the integer type |Int| exposed by Scala, which can represent either a boxed or unboxed value in the low-level bytecode. In the following running example, we have values of types |Int| and |Any|. |Any| is the top of the Scala type system, and thus a supertype of |Int|:
+
+\begin{lstlisting-nobreak}
+val i: Int = 1
+val j: Int = i
+val k: Any = j
+\end{lstlisting-nobreak}
+
+Since Scala compiles down to Java bytecode, during compilation, the LDL-based primitive unboxing transformation bridges the gap between the high-level |Int| concept and its two representations: the unboxed |int| and the boxed |java.lang.Integer| representation. Along the way, it introduces the necessary coercions between these two representations. For example, the code above is translated to:\footnote{The translations shown throughout the paper are Scala compiler abstract syntax tree (AST) dumps, in different stages of the compilation. To facilitate reading, we pretty-print the ASTs using Scala syntax. Sometimes we have to introduce elements that are not part of the Scala syntax, such as |int|.}
+
+\begin{lstlisting-nobreak}
+val i: `int` = 1
+val j: `int` = i
+val k: Any = Integer.valueOf(j)
+\end{lstlisting-nobreak}
+
+The LDL mechanism transforms the data representation in three phases:
+\inject{}, \coerce{} and \commit{}. Each of the phases is responsible
+for a property of the transformation: \inject{} makes LDL
+\emph{selective}, \coerce{} makes it \emph{optimal} and \commit{}
+makes it \emph{consistent}. In our examples, we show the equivalent
+source code for the program abstract syntax trees (ASTs) after each of
+these phases.
+
+\vspace{-0.2em}
+\subsubsection{The \inject{} phase} is responsible for marking each symbol with its desired representation. In the case of primitive integer unboxing, the annotation is |@unboxed|, and it signals that the value should be stored in the unboxed |int| representation. As an optimization, instead of adding a |@boxed| annotation for the corresponding cases, symbols that are not marked are automatically considered boxed. Following the \inject{} phase, the previous example will be transformed to:
+
+\vspace{-0.1em}
+\begin{lstlisting-nobreak}
+val i: `@unboxed` Int = 1 // Int can be unboxed
+val j: `@unboxed` Int = i // Int can be unboxed
+val k: Any = j                  // Any cannot be unboxed
+\end{lstlisting-nobreak}
+
+\vspace{-0.9em}
+The \inject{} phase gives LDL a selective nature, al\-low\-ing it to mark
+each individual symbol with its representation. For example, it would
+have been equally correct if the marking rules decided that |j| should
+be boxed, in which case it would not have been marked. One of
+the properties of the LDL transformation is that boxed and unboxed
+values are compatible in the \inject{} phase, so there are no coercions.
+
+\vspace{-0.3em}
+\subsubsection{The \coerce{} phase,} as its name suggests, introduces coercions. This is done by changing the annotation semantics: annotated types become incompatible with their un-annotated counterparts. This change in the annotation semantics corresponds to introducing the different representations: each annotation corresponds to a representation, and representations are not compatible with each other. With this change, an assignment from one representation to another will lead to mismatching types. Therefore, by re-type-checking the tree, the \coerce{} phase can detect representation mismatches and can patch them using coercions. In the example, the last line contains such a mismatch:
+
+\begin{lstlisting-nobreak}
+val i: @unboxed Int = 1 // expected/found: @unboxed
+val j: @unboxed Int = i // expected/found: @unboxed
+val k: Any = `box`(j)             // mismatch => box
+\end{lstlisting-nobreak}
+
+The \coerce{} phase establishes the optimality property of the LDL transformation. The definition of optimality is quite involved, but we can easily show it using an example. Consider the following two integer definitions:
+
+\begin{lstlisting-nobreak}
+val c: Boolean = ...
+val l1: @unboxed Int = if (c) i else j
+val l2: @unboxed Int = `unbox`(if (c) `box`(i) else `box`(j))
+\end{lstlisting-nobreak}
+
+It is clear that the two definitions will always produce the same result. Yet, the first one is markedly better: it does not execute any coercions, compared to second definition, which executes two coercions regardless of the value of |c|. These subtle sub-optimalities can slow down program execution, increase the heap footprint and the bytecode size. The LDL paper \cite{ldl} makes the following intuition-based conjecture: ``in any given terminating execution trace through the transformed program, the number of coercions executed is minimal, for given sets of annotations introduced by the \inject{} phase and transformations performed in the \commit{} phase''. An initial formalization and proof is sketched in \cite{ldl-form}.
+
+From our perspective, optimality means that once representations are chosen and annotated, the \coerce{} phase will not introduce any redundant coercions, so data will be seamlessly passed along with as few coercions as possible.
+
+\vspace{-0.3em}
+\subsubsection{The \commit{} phase} is responsible for introducing the actual representations. In the case of primitive unboxing, |@unboxed Int| is replaced by |int|, and |Int|, which is considered boxed, is replaced by |java.lang.Integer|. The |box| and |unbox| coercions are also replaced by the creation of objects and, respectively, by the extraction of the unboxed value:
+
+\vspace{-0.4em}
+\begin{lstlisting-nobreak}
+val i: `int` = 1
+val j: `int` = i
+val k: Any = `Integer.valueOf`(j)
+\end{lstlisting-nobreak}
+
+The \commit{} phase is responsible for the consistency of the transformation. Since the program abstract syntax tree (AST) has been checked by the type-system extended with representation semantics, the \commit{} phase is guaranteed to correctly handle the value representations and to correctly coerce between them. This allows the \commit{} phase to be a very simple transformation over the program AST.
+
+\subsection{Support For Object-Oriented Programming}
+\label{sec:ldl:oo-patterns}
+
+The LDL mechanism targets object-oriented programming languages, which pose unique challenges for data representation transformations. This section will describe the additional rules necessary in LDL to handle object-orientation.
+
+\subsubsection{Object-oriented Patterns.} Aside from introducing coercions, data representation transformations must handle object-oriented patterns, such as method calls and subtyping. Not all representations can be used with these patterns. For example, it is not possible to call the |toString| method on the unboxed |int| representation:
+
+\begin{lstlisting-nobreak}
+val a: `@unboxed Int` = 1
+println(a.toString)
+\end{lstlisting-nobreak}
+
+To handle dynamically dispatched method calls, LDL has a built-in rule: when a value acts as a method call receiver, it is coerced to the boxed representation, which, in this case, corresponds to the non-annotated representation. In our example, the |@unboxed Int| value is boxed during the \coerce{} phase, so it can act as the receiver of the |toString| method:
+
+\begin{lstlisting-nobreak}
+val a: @unboxed Int = 1
+println(`box`(a).toString)
+\end{lstlisting-nobreak}
+
+To improve performance, the LDL mechanism also supports bypass methods, also known as
+\emph{extension methods} in the literature. For example, if a static |bypass_toString| method is available for the unboxed |int| representation, there is no need to convert it before the method call:
+
+\begin{lstlisting-nobreak}
+val a: @unboxed Int = 1
+println(`bypass_toString`(a))
+\end{lstlisting-nobreak}
+
+Subtyping is handled in a similar fashion, by requiring the boxed representation, which can be assigned to supertypes.
+
+\subsubsection{Support for Generics.} The Late Data Layout mechanism is agnostic to generics. This means that, depending on the transformation semantics and the implementation of generics, the mechanism can inject annotations in the type arguments or not. For example, if generics are erased, a list of integers will have type |List[Int]|, since values need to be boxed. If generics are unboxed and reified, the list type will be |List[@unboxed Int]|. The LDL paper \cite{ldl} shows examples of both cases: when annotations are propagated inside generics and when they are not. The LDL mechanism adapts seamlessly to either case.
+
+Having seen the Late Data Layout mechanism at work for unboxing primitive types, we can now extend it to allow the more complex, programmer-driven, Ad hoc Data Representation Transformation.

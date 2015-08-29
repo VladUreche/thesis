@@ -1,0 +1,189 @@
+\documentclass[10pt, preprint]{sigplanconf}
+
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[compact]{titlesec}
+\usepackage{multirow}
+\usepackage{color, colortbl}
+\usepackage{fancyvrb}
+\usepackage{shortvrb}
+\usepackage{setspace}
+\usepackage{flushend}
+\usepackage{stfloats}
+
+\DefineShortVerb{\|}
+\fvset{fontsize=\small}
+
+% HACKS
+\setstretch{0.9803}
+\renewcommand{\bibfont}{\scriptsize}
+
+
+\definecolor{Gray}{gray}{0.9}
+\newcolumntype{g}{>{\columncolor{Gray}}r}
+
+% This marks topic sentences
+\newcommand{\topic}[1]{#1}
+%\newcommand{\topic}[1]{{\bf \color{Bittersweet}#1}}
+% This marks comments
+%\newcommand{\vu}[1]{{\color{BurntOrange}\framebox{{\bf VU}}\;#1}\;}
+%\newcommand{\tr}[1]{{\color{Blue}{\bf \framebox{TR}\;#1}}\;}
+%\newcommand{\as}[1]{{\color{Red}{\bf \framebox{AS}\;#1}}\;}
+%\newcommand{\mo}[1]{{\color{OliveGreen}{\bf \framebox{MO}\;#1}}\;}
+\newcommand{\textem}[1]{{\em#1}}
+\newcommand{\newterm}[1]{{\em #1}}
+
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{beramono}
+\newcommand\Small{\fontsize{8.5}{8.5}\selectfont}
+\newcommand*\LSTfont{\Small\ttfamily\lsstyle}
+
+
+% "define" Scala
+\lstdefinelanguage{scala}{
+  morekeywords={abstract,case,catch,class,def,%
+    do,else,extends,false,final,finally,%
+    for,if,implicit,import,match,mixin,%
+    new,null,object,override,package,%
+    private,protected,requires,return,sealed,%
+    super,this,throw,trait,true,try,%
+    type,val,var,while,with,yield},
+  otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[n]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  morestring=[b]"""
+}
+
+% Divisible by
+\DeclareRobustCommand{\divby}{%
+  \mathrel{\vbox{\baselineskip.65ex\lineskiplimit0pt\hbox{.}\hbox{.}\hbox{.}}}%
+}
+
+% Default settings for code listings
+%\lstset{language=scala,showstringspaces=false,columns=flexible, basicstyle=\footnotesize \ttfamily}
+\definecolor{ggray}{gray}{0.5}
+\renewcommand{\ttdefault}{pcr}
+\lstset{frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\footnotesize \ttfamily},
+  %basicstyle=\LSTfont,
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\bfseries,
+  commentstyle=\em\color{ggray},
+  stringstyle=\em,
+%  keywordstyle=\color{blue},
+%  commentstyle=\color{OliveGreen},
+%  stringstyle=\color{Purple},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true
+  tabsize=3
+}
+
+%%% How to prevent lstlisting from splitting code between pages?
+%%% http://tex.stackexchange.com/questions/10141/how-to-prevent-lstlisting-from-splitting-code-between-pages
+\lstnewenvironment{lstlisting-nobreak}[1][]%
+{
+   \noindent
+   \minipage{\linewidth}
+   \vspace{0.12\baselineskip}
+%    \lstset{basicstyle=\ttfamily\footnotesize,frame=single,#1}
+}
+{
+   \vspace{-0.18\baselineskip}
+   \endminipage
+}
+
+
+% Footnote remember - http://anthony.liekens.net/index.php/LaTeX/MultipleFootnoteReferences
+\newcommand{\footnoteremember}[2]{
+\footnote{#2}
+\newcounter{#1}
+\setcounter{#1}{\value{footnote}}
+}
+\newcommand{\footnoterecall}[1]{
+\footnotemark[\value{#1}]
+}
+% use:
+% \footnoteremember{myfootnote}{This is my footnote}
+% \footnoterecall{myfootnote}
+
+% Packed item, so we don't waste space
+\newenvironment{packed_item}{
+\begin{itemize}
+  \setlength{\itemsep}{1pt}
+  \setlength{\parskip}{0pt}
+  \setlength{\parsep}{0pt}
+}{\end{itemize}}
+%%%%%%%% END MY STUFF %%%%%%%%
+
+%% OOPSLA ARTIFACT CERTIFICATION %%
+\usepackage[firstpage]{draftwatermark}
+\SetWatermarkText{\hspace*{8in}\raisebox{4.5in}{\includegraphics[scale=0.1]{aec-badge.eps}}}
+\SetWatermarkAngle{0}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\clubpenalty=10000
+\widowpenalty = 10000
+
+\exclusivelicense
+\conferenceinfo{OOPSLA~'13}{October 29--31, 2013, Indianapolis, Indiana, USA}
+\copyrightyear{2013}
+\copyrightdata{978-1-4503-2374-1/13/10}
+\doi{2509136.2509537}
+
+\titlebanner{PREPRINT}        % These are ignored unless
+\preprintfooter{PREPRINT}     % 'preprint' option specified.
+
+%\title{Improving the Speed to Code Size Tradeoff in Generic Code}
+\title{Miniboxing: Improving the Speed to Code Size Tradeoff in Parametric Polymorphism Translations}
+%\subtitle{Subtitle Text, if any}
+
+\authorinfo{Vlad Ureche \and Cristian Talau \and Martin Odersky}
+           {EPFL, Switzerland}
+           {\{first.last\}@epfl.ch}
+
+\maketitle
+
+\input{abstract.tex}
+
+\category{D.3.3}{Language Constructs and Features}{Polymorphism}
+\category{E.2}{Object representation}{}
+
+\keywords
+Miniboxing; Specialization; Data Representation; Parametric Polymorphism; Erasure; Scala; Java Virtual Machine; Bytecode; Generics
+
+\input{introduction.tex}
+\input{problem.tex}
+\input{miniboxing.tex}
+\input{transform.tex}
+\input{runtime.tex}
+\input{classloading.tex}
+\input{evaluation.tex}
+\input{related.tex}
+\input{conclusion.tex}
+
+\acks
+The authors would like to thank Miguel Alfredo Garcia Gutierrez for his remarks that sparked the idea of miniboxing and for allowing early access to the experimental optimization phases from the new Scala 2.11 backend, which we used in the specializing classloader. Iulian Dragos provided invaluable help in understanding and reusing the specialization infrastructure already existing in the Scala compiler. We would also like to thank our anonymous reviewers for providing very useful feedback that completely reshaped two sections of the paper. We are also grateful to Michel Schinz, Roland Ducournau, Lukas Rytz, Vera Salvisberg, Sandro Stucki and Hubert Plociniczak who provided detailed reviews and helped us improve the paper. Last but not least, we are thankful to all the members of the Programming Languages Laboratory at EPFL (LAMP) and the Scala community, who provided a great environment for developing the miniboxing plugin, with passionate discussions, brainstorming sessions and a constant stream of good questions and quality feedback.
+
+
+This research was partially supported through the European Research Council (ERC) grant 587327 ``DOPPLER''.
+
+\bibliographystyle{abbrvnat}
+\bibliography{main}
+
+\end{document}

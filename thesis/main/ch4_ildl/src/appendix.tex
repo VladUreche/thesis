@@ -1,0 +1,164 @@
+\section*{Appendix}
+
+In this appendix we give the signatures of the Gaussian Integer transformation object and walk through each step of the compilation. The complete source code can be found in the artifact distributed with the paper:
+
+\begin{lstlisting-nobreak}
+package ildl.benchmark.gcd_minimal
+import ildl._
+
+object IntPairAsGaussianInt extends Transformation{
+  // coercions:
+  def toRepr(pair: (Int, Int)): @high Long = ...
+  def toHigh(l: @high Long): (Int, Int) = ...
+
+  // constructor:
+  def ctor_Tuple2(_1: Int, _2: Int): @high Long = ...
+
+  // interface:
+  def implicit_GaussianInt_%(n1: @high Long, n2: @high Long): @high Long = ...
+  def implicit_GaussianInt_norm(n: @high Long): Int = ...
+}
+
+object GCD {
+  implicit class GaussianInt(pair: (Int, Int)) {
+    def %(that: (Int, Int)): (Int, Int) = ...
+    def norm = ...
+  }
+
+  adrt(IntPairAsGaussianInt) {
+    def gcd(n1: (Int, Int), n2: (Int, Int)): (Int, Int) = {
+      val remainder = n1 % n2
+      if (remainder.norm == 0) n2 else gcd(n2, remainder)
+    }
+  }
+}
+\end{lstlisting-nobreak}
+
+The most important compiler phases injected by the ADRT plugin are: \postparser{}, \inject{}, \bridge{}, \coerce{} and \commit{}. We show how each of these phases transforms the code. After the source code has been parsed, before type checking and name resolution, the \postparser{} phase inlines the |adrt| scopes and attaches unique ids to the abstract syntax tree (AST) nodes, both for the transformation object and for the transformed scope:
+
+\vspace{-0.3em}
+\begin{lstlisting}
+object IntPairAsGaussianInt extends Transformation{
+  // same as before
+}
+\end{lstlisting}
+
+\begin{lstlisting-nobreak}
+object GCD {
+  // The GaussianInt class does not change:
+  implicit class GaussianInt(pair: (Int, Int))...
+
+  /* id: 100 */ `adrt(IntPairAsGaussianInt) {}`
+  /* id: 100 */ def gcd(...): (Int, Int) = {
+  /* id: 100 */        val remainder = n1 % n2
+  /* id: 100 */        if (remainder.norm == 0) ...
+  /* id: 100 */ }
+}
+\end{lstlisting-nobreak}
+
+After the \postparser{} phase, the tree is ready for name resolution and type checking. These two phases run in tandem and transform the literal |IntPairAsGaussianInt| into a fully qualified reference, which points to the object symbol. Along the way, the type-checker ensures that |IntPairAsGaussianInt| extends the |Transformation| trait and that it is an object.
+
+During type checking, the missing type annotations and implicit conversions are added to the AST:
+
+\vspace{-0.1em}
+\begin{lstlisting-nobreak}
+object GCD {
+  ...
+  /* id: 100 */ adrt(IntPairAsGaussianInt) {}
+  /* id: 100 */ def gcd(...): (Int, Int) = {
+  /* id: 100 */       val remainder: `(Int, Int)` = `new GaussianInt(n1).%(n2)`
+  /* id: 100 */       if (`(new GaussianInt(remainder).norm)` == 0) ...
+  /* id: 100 */ }
+}
+\end{lstlisting-nobreak}
+
+After name resolution and type checking, the \inject{} phase transforms the tree attachments into annotations. Since there is a single transformation object in the example, we will use |@repr| to mean |@repr(IntPairAsGaussianInt)|:
+
+\vspace{-0.1em}
+\begin{lstlisting-nobreak}
+object GCD {
+  ...
+  def gcd(n1: `@repr (Int, Int)`, n2: `@repr (Int, Int)`): `@repr (Int, Int)` = {
+    val remainder: `@repr (Int, Int)` = ...
+    if ((new GaussianInt(remainder).norm) == 0) ...
+  }
+}
+\end{lstlisting-nobreak}
+
+The \inject{} phase takes place right before the Scala signatures are persisted. Therefore, it needs to change the signatures in the |IntPairAsGaussianInt| object as well, by replacing all references to |@high Long| by |@repr (Int, Int)|, except for the two coercions:
+
+\vspace{-0.1em}
+\begin{lstlisting-nobreak}
+object IntPairAsGaussianInt extends Transformation{
+  // coercions:
+  def toRepr(pair: (Int, Int)): `@high Long` = ...
+  def toHigh(l: `@high Long`): (Int, Int) = ...
+
+  // constructor:
+  def ctor_Tuple2(_1: Int, _2: Int): `@repr (Int, Int)`
+
+  // and so on ...
+}
+\end{lstlisting-nobreak}
+
+The member signatures are then persisted, meaning that all future compilation runs see the signatures left by the \inject{} phase. Thus, to ensure scope composition, none of the signatures computed by the \inject{} phase can contain references to the representation type, except for the |toHigh| and |toRepr| coercions. Then, all signatures that are transformed contain two pieces of information: the high-level type and the transformation description object.
+
+As explained in \S\ref{sec:ildl:separate-compilation} and \S\ref{sec:ildl:language-overriding}, bridges are only necessary when a transformed method overrides or implements a method that was not transformed, in order to preserve the object model despite the low-level signature change. In our case, the |gcd| method neither implements existing interfaces nor overrides existing methods. Thus, the \bridge{} phase leaves the AST unchanged. Should the |gcd| method be called from outside an |adrt| scope, the arguments and return are adapted at the call site, based on the |@repr| annotation, which is persisted in method |gcd|'s signature.
+
+Then, the \coerce{} phase introduces coercions and rewrites dynamic calls to bypass methods. The transformation description objects are skipped by the \coerce{} phase, as re-type-checking them with the modified signatures would lead to errors:
+
+\vspace{0.2em}
+\begin{lstlisting-nobreak}
+object GCD {
+  ...
+  def gcd(n1: @repr (Int, Int), n2: @repr (Int, Int)): @repr (Int, Int) = {
+    val remainder: @repr (Int, Int) = `implicit_GaussianInt_%(n1, n2)`
+    if (`implicit_GaussianInt_norm(remainder)` == 0) n2 else gcd(n2, remainder)
+  }
+}
+\end{lstlisting-nobreak}
+
+Finally, the \commit{} phase transforms the code to:
+
+\vspace{0.2em}
+\begin{lstlisting-nobreak}
+object IntPairAsGaussianInt extends Transformation{
+  // coercions:
+  def toRepr(pair: (Int, Int)): `Long` = ...
+  def toHigh(l: `Long`): (Int, Int) = ...
+
+  // and so on ...
+}
+
+object GCD {
+  ...
+  def gcd(n1: `Long`, n2: `Long`): `Long` = {
+    val remainder = implicit_GaussianInt_%(n1, n2)
+    if (implicit_GaussianInt_norm(remainder) == 0) n2 else gcd(n2, remainder)
+  }
+}
+\end{lstlisting-nobreak}
+
+Later in the compilation pipeline, the |Long| integer is unboxed to |long|, producing the following bytecode (for which we give the source-equivalent Scala code):
+
+\vspace{0.2em}
+\begin{lstlisting-nobreak}
+object IntPairAsGaussianInt extends Transformation{
+  // coercions:
+  def toRepr(pair: (Int, Int)): `long` = ...
+  def toHigh(l: `long`): (Int, Int) = ...
+
+  // and so on ...
+}
+
+object GCD {
+  ...
+  def gcd(n1: `long`, n2: `long`): `long` = {
+    val remainder = implicit_GaussianInt_%(n1, n2)
+    if (implicit_GaussianInt_norm(remainder) == 0) n2 else gcd(n2, remainder)
+  }
+}
+\end{lstlisting-nobreak}
+
+This is the bytecode that will ultimately execute in the Java Virtual Machine. Notice the fact that it executes without any object allocation and does not use dynamic dispatch. This ensures good performance and minimizes the garbage collection pauses. \iv{That's it! Go home everyone!}
+\vspace{-2em}

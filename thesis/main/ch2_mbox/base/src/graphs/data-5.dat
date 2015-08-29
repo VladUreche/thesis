@@ -1,0 +1,7 @@
+"generic"           22.1 22.1
+"mb. switch"        18.3 18.8
+"mb. dispatch"      15.6 21.0
+"mb. switch + RT"   16.2 16.2
+"mb. dispatch + RT" 16.1 16.1
+"specialization"    14.5 36.4
+"monomorphic"       13.3 13.3

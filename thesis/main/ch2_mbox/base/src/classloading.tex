@@ -1,0 +1,78 @@
+\begin{table}[t] \centering \small
+\begin{tabular}{l|r|r}
+                                        &   Single Context          & Multi Context          \\\hline
+generic                                 &            20.4 \optpm{3.7}&             21.5 \optpm{2.2}\\
+miniboxed, full switch                  &             2.4 \optpm{0.6}&             15.1 \optpm{3.5}\\
+\rowcolor{Gray}
+mb. full switch, LS                     &             2.5 \optpm{0.5}&     \textbf{2.4} \optpm{0.5}\\
+miniboxed, dispatcher                   &             2.1 \optpm{0.6}&             26.4 \optpm{1.9}\\
+\rowcolor{Gray}
+mb. dispatcher, LS                      &             2.0 \optpm{0.5}&     \textbf{2.7} \optpm{0.1}\\
+specialized                             &             2.0 \optpm{0.6}&              2.4 \optpm{0.4}\\
+monomorphic                             &             2.1 \optpm{0.6}&              N/A  \\
+\end{tabular}
+\caption{The time in milliseconds necessary for reversing an array buffer of 3 million integers. Miniboxing benchmarks ran with the double factory mechanism and the load-time specialization are marked with LS. \label{tbl-mb-runtime}}
+\label{tbl-mb-classloading}
+\end{table}  
+
+\section{Miniboxing Load-time Optimization}
+\label{sec-classloading}
+
+The miniboxing runtime support, in both incarnations, using switching and dispatching, fails to deliver performance in the ``Multi Context'' scenario. The reason, in both cases, is that execution takes multiple paths through the code and this prevents the Java Virtual Machine from optimizing. Therefore an obvious solution is to duplicate the class bytecode, but instead of duplicating it on the disk, as specialization does, we do it in memory, on-demand and at load-time. The .NET Common Language Runtime \cite{ecma-dotnet, dot-net-generics} performs on-demand specialization at load-time, but it does so using more complex transformations encoded in the virtual machine. Instead, we use Java's classloading mechanism.
+
+\topic{We use a custom classloader to clone and specialize miniboxed classes.} Similar to the approach in {\em Pizza} \cite{pizza}, the classloader takes the name of a class that embeds the type byte value. For example, |ListNode_I| corresponds to a clone of |ListNode_M| with the type byte set to |INT|. From the name, the classloader infers the miniboxed class name and loads it from the classpath. It clones its bytecode and adjusts the constant table \cite{jsr-202}. All this is done in-memory. 
+
+Once the bytecode is cloned, the paths taken through the inlined runtime support in each class remain fixed during its lifetime, making the performance in ``Single Context'' and ``Multi Context'' comparable, as can be seen in Table \ref{tbl-mb-classloading}. The explanation is that the JVM sees different classes, with separate type profiles, for each primitive type.  
+
+Aside from bytecode cloning, the classloader also performs class specialization:
+\begin{packed_item}
+\item Replaces the type tag fields by static fields (as the class is already dedicated to a type);
+\item Uses constant propagation and dead code elimination to reduce each type tag switch down to a single case, which can be inlined by the virtual machine, thus eliminating the need for forced inlining;
+\item Performs load-time rewiring, which is described in the next section. 
+\end{packed_item} 
+
+\subsection{Miniboxing Load-time Rewiring}
+\label{subsec-runtime-rewiring}
+
+\topic{When rewiring, the miniboxing transformation follows the same rules set forth by specialization (\S\ref{subsec-spec-rewiring}).} Load-time cloning introduces a new layer of rewiring, which needs to take the cloned classes into account. The factory mechanism we employ to instantiate cloned and specialized classes (\S\ref{subsec-runtime-instantiation}) is equivalent to the instance rewiring in specialization. The two other rewiring steps in specialization are method rewiring and parent class rewiring. Fortunately method rewiring is done during compilation and since methods are not modified, there is no need to rewire them in the classloader. Parent classes, however, must be rewired at load-time to avoid performance degradation.  
+
+Load-time parent rewiring allows classes to inherit and use miniboxed methods while keeping type profiles clean. If the parent rewiring is done only at compile-time, all classes extending |ArrayBuffer_M| share the same code for the |reverse_M| method. But since they may use different type arguments when extending |ArrayBuffer|, they are back to the ``Multi Context'' scenario in table \ref{tbl-mb-simple}. To obtain good performance, rewiring parent classes is done first at compile time, to the miniboxed variant of the class, and then at load-time, to the cloned and specialized class. The following snippet shows parent rewiring in the case of dispatcher objects:  
+
+\begin{lstlisting-nobreak}
+ // user code:
+ class IntBuff extends ArrayBuffer[Int]
+ // after compile-time rewiring:
+ class IntBuff extends ArrayBuffer_M[Int](IntDispatcher)
+ // after load-time rewiring:
+ class IntBuff extends ArrayBuffer_I[Int](IntDispatcher)
+\end{lstlisting-nobreak}     
+
+\topic{The load-time rewiring of parent classes requires all subclasses with miniboxed parents to go through the classloader transformation.} This includes the classes extending miniboxed parents with static type arguments, such as the |IntBuff| class in the code snippet before. This incurs a first-instantiation overhead, which is an inconvenience especially for classes that are only used once, such as anonymous closures extending |FunctionX|. But not all classes make use of the miniboxing runtime for arrays, so we can devise an annotation which hints to the compiler which classes need factory instantiation. This would only incur the cloning and specialization overhead when the classes use arrays. The annotation could be automatically added by the compiler when a class uses array operations and propagated from parent classes to their children:
+
+\begin{lstlisting-nobreak}
+ @loadtimeSpec
+ class ArrayBuffer[@minispec T] 
+
+ // IntBuff automatically inherits @loadtimeSpec 
+ class IntBuff extends ArrayBuffer[Int]
+\end{lstlisting-nobreak}     
+    
+\subsection{Efficient Instantiation}
+\label{subsec-runtime-instantiation}
+
+Imposing the use of a global classloader is impossible in many practical applications. To allow miniboxing to work in such cases, we chose to perform the class instantiation through a factory that loads a local specializing classloader, requests the cloning and specialization of the miniboxed class and instantiates it via reflection. We benchmarked the approach and it introduced significant overhead, as instantiations using reflection are very expensive.
+
+\topic{To counter the cost of reflective instantiation,} we propose a ``double factory'' approach that uses a single reflective instantiation per cloned class. In this approach each cloned and specialized class has a corresponding factory -- that instantiates it using the {\bf new} keyword. When instantiating a miniboxed class with a new set of type arguments, its corresponding factory is specialized by the classloader and instantiated via reflection. From that point on, any new instance is created by the factory, without the reflective delay. The following code snippet shows the specialized (or 2$^\text{nd}$ level) factory:
+
+\begin{lstlisting-nobreak}
+ // Factory interface
+ abstract class ArrayBufferFactoryInterface {
+   def newArrayBuffer_M[T: Manifest](disp: Dispatcher[T]): ArrayBuffer[T]
+ }
+ // Factory instance, to be specialized 
+ // in the classloader
+ class ArrayBufferFactoryInstance_M extends ArrayBufferFactoryInterface {
+   def newArrayBuffer_M[T: Manifest](disp: Dispatcher[T]): ArrayBuffer[T] =
+     new ArrayBuffer_M(disp) 
+ }
+\end{lstlisting-nobreak}     
