@@ -3,13 +3,13 @@
 
 \topic{The miniboxing transformation, which we developed as a Scala compiler plugin, builds upon specialization}, which has been formalized in \cite{iuli-thesis}. It has the same opportunistic and compatible nature and performs class and method duplication in a similar manner. Still, five elements set it apart:
 
-\begin{packed_item}
+\begin{itemize}
 \item the different inheritance scheme (\S\ref{sec-mb-traf-inheritance})
 \item the type bytes for storing encoded types (\S\ref{sec-mb-traf-type-bytes}, \S\ref{sec-mb-traf-classes})
 \item the use of a shallow type transformation (\S\ref{sec-mb-traf-shallow})
 \item the use of the final peephole transformation (\S\ref{sec-mb-traf-peephole})
 \item the runtime support for miniboxed values (\S\ref{sec-mb-traf-runtime} and \S\ref{sec-runtime})
-\end{packed_item}
+\end{itemize}
 
 \begin{figure}[t]
     \centering
@@ -24,10 +24,10 @@
 \label{sec-mb-traf-inheritance}
 \topic{Miniboxing uses a generic trait as the parent of the specialized classes, therefore} avoiding the limitation that miniboxed classes cannot  inherit from each other (\S\ref{subsec-spec-limits}). Figure \ref{fig-mbox-multi} shows an example miniboxed class inheritance. As explained in \S\ref{subsec-spec-limits}, for $n$ specialized type parameters, having a trait as the parent increases the bytecode size from $2^n$ to $4^n$, since each of the $2^n$ miniboxed variants needs to implement all $2^n$ methods. Still, the extra bytecode is well spent, for two reasons:
 
-\begin{packed_item}
+\begin{itemize}
  \item Having a trait at the top of the hierarchy means no generic fields are inherited in the specialized variants, as it happens when the homogeneous translation is at the top of the hierarchy (\S\ref{subsec-spec-limits});
  \item This inheritance scheme allows specialized classes to inherit their specialized parent, thus achieving better performance in deep hierarchies.
-\end{packed_item}
+\end{itemize}
 
 Since the types assigned to tree nodes do not reference the specialized variants but only the generic interface, this inheritance scheme does not interfere with covariance or contravariance. Indeed, if the type parameter of |ListNode| is defined as covariant, |ListNode_M[Int]| is subtype of |ListNode[Int]| and, transitively, of |ListNode[Any]|.
 

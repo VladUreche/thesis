@@ -25,11 +25,11 @@ The miniboxing runtime support, in both incarnations, using switching and dispat
 Once the bytecode is cloned, the paths taken through the inlined runtime support in each class remain fixed during its lifetime, making the performance in ``Single Context'' and ``Multi Context'' comparable, as can be seen in Table \ref{tbl-mb-classloading}. The explanation is that the JVM sees different classes, with separate type profiles, for each primitive type.  
 
 Aside from bytecode cloning, the classloader also performs class specialization:
-\begin{packed_item}
+\begin{itemize}
 \item Replaces the type tag fields by static fields (as the class is already dedicated to a type);
 \item Uses constant propagation and dead code elimination to reduce each type tag switch down to a single case, which can be inlined by the virtual machine, thus eliminating the need for forced inlining;
 \item Performs load-time rewiring, which is described in the next section. 
-\end{packed_item} 
+\end{itemize} 
 
 \subsection{Miniboxing Load-time Rewiring}
 \label{subsec-runtime-rewiring}
