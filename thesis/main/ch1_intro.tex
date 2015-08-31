@@ -1,5 +1,70 @@
-\chapter*{Introduction}
+\chapter{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
-A non-numbered chapter\dots
 
-\lipsum[1]
+% Programming languages
+%  - productivity: quicker development and fewer bugs
+%     - natural paradigm for modelling the problem domain
+%     - natural abstraction: reuse trusted components as much as possible
+% Despite the automation trend across industries, software development remains a craft, where every program is a unique piece of work custom-tailored for a specific purpose. With many components created from scratch, programs are developed slowly and, even when released, they usually have corner cases that cause malfunctions.
+%
+% To ease development and improve quality, programming languages offer high-level abstractions that make it easy to express the desired behavior and promote reuse, by offering libraries that reduce the amount of new logic necessary to express programs. For example, high-level concepts such as arrays, vectors, linked lists and hash maps are provided by many programming languages in their standard libraries.
+%
+% Then, compilers transform the high-level language into low-level code that can be executed by machines. However, the low-level operations in a processor are limited, so compiling the high-level abstractions and allowing the reuse of low-level code in the standard library is a difficult problem. Currently, both programs and libraries are compiled favoring compatibility at the expense of performance: it is always possible to reuse the constructs, but the low-level code must be pessimisitcally compiled to make it always compatible.
+%
+
+% Much of what computers do revolves around manipulating data. From database records, web pages transmitted over the Internet and ultimately to pixels on the user's screen, everything can be seen as reading data from one source, in one representation (format), modifying and possibly aggregating it then and handing it off in another representation. To maximize the efficiency of these operations, the code executed by the processor (the low-level machine code) must use the most specific and efficient data representations for the task at hand.
+%
+% On the other hand, programmer productivity comes from using high-level languages that make it easy to express the problem domain, such as, for example, object-oriented languages. The other major productivity boost comes from reusing concepts and implementations as much as possible. For example, general data structures such as arrays, vectors, linked lists and hash maps are a common sight in the standard libraries of many programming languages, allowing developers to easily instantiate them for any data, from database records to screen pixels.
+%
+% The abstraction and generality of the high-level code is at odds with the specificity and fine-tuning necessary for efficient execution. Indeed, compilers, which translate the programmer-written high-level code into machine-executable low-level code usually favor compatibility with all possible use-cases over the spcificity and fine-tuning necessary for execution. Thus, programs making use of high-level constructs and off-the-shelf library data structures tend to execute less efficiently and require more memory than the equivalent programs defining their self-sufficient equivalents, which define their own specific data structures and formats for the given task.
+%
+% Thus, under the current compilation schemes, programmer productivity lies at odds with efficient execution. This thesis explores serveral ways in which the compiler can improve the data representation and handling either automatically (chapters \ref{chapter:miniboxing} and \ref{chapter:ldl}) or using directions from the programmer (chapter \ref{chapter:ildl}). The next part will define the context of the work.
+%
+% \section{Context}
+
+A computer's processor is an amazing device: it executes millions of operations each second, at speed difficult to comprehend by humans. Still, these operations are simple, precise instructions: read 32 bits from memory address X into register R1, extend the number in R1 to a 64 bit unsigned integer and then add registers R1 and R2 as 64-bit unsigned integers. For the processor, data is made up of bits and each operation needs to know the exact size and semantics of the data, since this selects which set of bitwise operations will be executed.
+
+On the completely opposite side of the spectrum, people think in terms of very high-level goals, such as the desire to find the average temperature over a day or week. Programming languages and compilers bridge the gap between the complex and abstract high-level goals and the precise low-level machine code necessary to fulfill them: Programming languages allow people to express their intent while compilers translate this intent, written in source code, to low-level machine code.
+
+Programming lanugages have long struggled with a dilemma: exposing low-level data types and low level operations allows very good control and easy translation, but reduces the programmer productivity. Indeed, programming languages such as Assmbly and C allow very precise control over all aspects of the computation and the interaction between the processor and the other devices in the computer, such as the network interface card. However, this forces the programmer to decide the exact format of the data, the exact sequence of the interaction with each device and so on. Each of these decisions is tedious and error-prone.
+
+The other alternative is exposing very high-level data structures and operations in the programming language. Indeed, languages such as Scala, Python, Ruby, JavaScript gloss over many implementation details to offer the programmers a high-level environment that boosts productivity. For example, Python automatically takes care of extending the bit count when a number overflows. The Scala standard library offers data structures such as arrays, vectors, lists that are parametric in the type of their element: they can be statically guaranteed to only store a single type of values, be that integers, floating-point numbers, database records or objects representing other nested data structures. But this flexibility comes at the price of efficiency: the high-level code must be compiled to long sequences of machine instructions, where most of the data is passed as pointers to memory-allocated objects and operations are executed through indirect calls. Despite the processor execution speed, these operations can incur orders of magnitude of slowdowns.
+
+This is where this thesis makes its contribution: it proposes a general mechanism that allows compilers to optimally and safely lower high-level abstractions into more efficitent low-level data structures. The key feature of this mechanism is its predictable nature, where most compiler optimizations are opportunistic and may or may not kick in based on heuristics. Furthermore, we have shown that the mechanism is general enough to accommodate a wide range of transformations: from improving generics, avoiding heap allocation and all the way to allowing programmers to fine-tune their data structures after the fact.
+
+%% Story of development:
+%  1. miniboxing
+%  2. LDL
+%  3. iLDL
+
+\cite{st-amour-opt-coaching}
+
+\section{Context and Goals}
+
+This section describes the context of the work, motivating decisions with examples and will show the contributions at a glance.
+
+\subsection{Implicit Representation Choice}
+
+
+\subsection{Object Oriented Model}
+
+% Natural paradigm.
+% Object-oriented paradigm -- very natural as it follows intensional definitions: genus/differentia deffinition
+%   Example Automobile -- Car, Motorcycle, ..., Tesla (Car with Electric)
+
+% Reuse -
+%  -- implementation reuse (List, Vector, Map)
+%  -- conceptual reuse (according to Einstein, we know the speed is less than c, which is approximately 1.1*10^9 km/h and above 0), we we use 32-bit integers
+
+% Implicit memory management
+
+% reflection
+
+\subsection{Compile-Time Transformation}
+
+\subsection{Configurability and Optimality}
+
+\subsection{Open World Assumption}
+
+
+\section{Contributions}
