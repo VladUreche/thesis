@@ -3,7 +3,7 @@
 
 We implemented the ADR transformation as a Scala compiler plugin \cite{ildl-plugin}, by extending the open-source multi-stage programming transformation provided with the LDL \cite{ldl} artifact, available at \cite{ldl-staging-plugin}. In this section we describe the technical aspects of our implementation that are not directly related to the transformation itself, but to providing a good programmer experience. Readers should also refer to the paper Appendix for an end-to-end example of the transformation phases. Additionally, the paper is accompanied by an artifact which can be used to explore the transformation.
 
-\vspace{0.3em}
+
 \noindent \textbf{The} |adrt| \textbf{scope} acts as the trigger for the ADR transformation.
 We treat it as a special keyword that we transform immediately after parsing, in the \postparser{} phase.
 To show this, we follow a program through the compilation stages:
@@ -20,7 +20,7 @@ def foo: (Int, Int) = {
 \noindent
 Immediately after the source is parsed, the \postparser{} phase transforms the |adrt| scopes in three steps:
 
-\vspace{0.3em}
+
 \begin{itemize}
 \item it attaches a unique id to each |adrt| scope;
 \item it records and clears the block enclosed by the |adrt| scope
@@ -28,7 +28,7 @@ Immediately after the source is parsed, the \postparser{} phase transforms the |
 |adrt| scope and, in the process, it marks the value and method definitions
 by the |adrt| scope's unique id (or by multiple ids, if |adrt| scopes are nested).
 \end{itemize}
-\vspace{0.3em}
+
 
 \noindent Following the \postparser{} phase, the code is:
 
@@ -42,12 +42,12 @@ def foo: (Int, Int) = {
 
 This code is ready for type-checking: the definition of |n| is located in the same block as its use, making the scope correct. During the type-checking process, the |IntPairToLong| object is resolved to a symbol, missing type annotations are inferred and implicit conversions are introduced explicitly in the tree. After type-checking and pattern matching expansion, the \inject{} phase traverses the tree and:
 
-\vspace{0.3em}
+
 \begin{itemize}
 \item for every |adrt| scope it records the id and description object, before removing it from the abstract syntax tree;
 \item for value and method definitions, if the type matches one or more transformations, it adds the |@repr| annotation.
 \end{itemize}
-\vspace{0.3em}
+
 
 \noindent Following the \inject{} phase, the code for our example is:
 
@@ -83,12 +83,12 @@ This mechanism allows programmers to both define and use the transformation desc
 Another advantage we get for free, thanks to referencing the transformation description object in the type annotation, is an explicit dependency between all transformed values and their description objects. This allows the Scala incremental compiler to automatically recompile all scopes when the description object in their |adrt| marker has changed.
 
 
-\vspace{-0.5em}
+
 \paragraph*{Compiler Entry Points.}
 
 In many of the descriptions so far we have implicitly assumed the Scala compiler features. To ease other compiler developers in porting this approach, we highlight the exact Scala compiler features that we use:
 
-\vspace{0.3em}
+
 \begin{itemize}
   \item The type checker is available at all times during compilation;
   \item We can change/see a symbol's signature at any phase;
@@ -96,6 +96,6 @@ In many of the descriptions so far we have implicitly assumed the Scala compiler
   \item The compiler support AST attachments;
   \item The compiler offers expected type propagation during type checking (In Scala, this is part of the local type inference.)
 \end{itemize}
-\vspace{0.3em}
+
 
 This concludes the section, which explained how we solved the main technical problems in the ADR Transformation and how this impacted the compilation pipeline. We now continue with our experimental evaluation.

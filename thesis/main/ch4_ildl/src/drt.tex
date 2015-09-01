@@ -1,4 +1,4 @@
-\vspace{-0.8em}
+
 
 \section{Data Representation Transformations}
 \label{sec:drt}
@@ -48,17 +48,17 @@ makes it \emph{consistent}. In our examples, we show the equivalent
 source code for the program abstract syntax trees (ASTs) after each of
 these phases.
 
-\vspace{-0.2em}
+
 \subsubsection{The \inject{} phase} is responsible for marking each symbol with its desired representation. In the case of primitive integer unboxing, the annotation is |@unboxed|, and it signals that the value should be stored in the unboxed |int| representation. As an optimization, instead of adding a |@boxed| annotation for the corresponding cases, symbols that are not marked are automatically considered boxed. Following the \inject{} phase, the previous example will be transformed to:
 
-\vspace{-0.1em}
+
 \begin{lstlisting-nobreak}
 val i: `@unboxed` Int = 1 // Int can be unboxed
 val j: `@unboxed` Int = i // Int can be unboxed
 val k: Any = j                  // Any cannot be unboxed
 \end{lstlisting-nobreak}
 
-\vspace{-0.9em}
+
 The \inject{} phase gives LDL a selective nature, al\-low\-ing it to mark
 each individual symbol with its representation. For example, it would
 have been equally correct if the marking rules decided that |j| should
@@ -66,7 +66,7 @@ be boxed, in which case it would not have been marked. One of
 the properties of the LDL transformation is that boxed and unboxed
 values are compatible in the \inject{} phase, so there are no coercions.
 
-\vspace{-0.3em}
+
 \subsubsection{The \coerce{} phase,} as its name suggests, introduces coercions. This is done by changing the annotation semantics: annotated types become incompatible with their un-annotated counterparts. This change in the annotation semantics corresponds to introducing the different representations: each annotation corresponds to a representation, and representations are not compatible with each other. With this change, an assignment from one representation to another will lead to mismatching types. Therefore, by re-type-checking the tree, the \coerce{} phase can detect representation mismatches and can patch them using coercions. In the example, the last line contains such a mismatch:
 
 \begin{lstlisting-nobreak}
@@ -87,10 +87,10 @@ It is clear that the two definitions will always produce the same result. Yet, t
 
 From our perspective, optimality means that once representations are chosen and annotated, the \coerce{} phase will not introduce any redundant coercions, so data will be seamlessly passed along with as few coercions as possible.
 
-\vspace{-0.3em}
+
 \subsubsection{The \commit{} phase} is responsible for introducing the actual representations. In the case of primitive unboxing, |@unboxed Int| is replaced by |int|, and |Int|, which is considered boxed, is replaced by |java.lang.Integer|. The |box| and |unbox| coercions are also replaced by the creation of objects and, respectively, by the extraction of the unboxed value:
 
-\vspace{-0.4em}
+
 \begin{lstlisting-nobreak}
 val i: `int` = 1
 val j: `int` = i

@@ -2,16 +2,16 @@
 
 Generics on the Java platform are compiled using the erasure transformation, which only supports by-reference values. This causes slowdowns when generics operate on primitive types, such as integers, as they have to be transformed into reference-based objects.
 
-Project Valhalla is an effort to remedy this problem by specializing classes at load-time so they can efficiently handle primitive values. In its current early prototype\footnote{As of August 2015 \cite{valhalla-model2-announcement,valhalla-model2-implementation}.\vspace{-1em}}, the Valhalla compilation scheme limits the interaction between specialized and erased generics, thus preventing certain useful code patterns from being expressed.
+Project Valhalla is an effort to remedy this problem by specializing classes at load-time so they can efficiently handle primitive values. In its current early prototype\footnote{As of August 2015 \cite{valhalla-model2-announcement,valhalla-model2-implementation}.}, the Valhalla compilation scheme limits the interaction between specialized and erased generics, thus preventing certain useful code patterns from being expressed.
 
 Scala has been using compile-time specialization for 6 years and has three generics compilation schemes working side by side. In Scala, programmers are allowed to write code that freely exercises the interaction between the different compilation schemes, at the expense of introducing subtle performance issues. Similar performance issues can affect Valhalla-enabled bytecode, whether the code was written in Java or translated from other JVM languages.
 
 In this context we explain how we help programmers avoid these performance regressions in the miniboxing transformation: (1) by issuing actionable performance advisories that steer programmers away from performance regressions and (2) by providing alternatives to the standard library constructs that use the miniboxing encoding, thus avoiding the conversion overhead.
 
-\vspace{-0.5em}
+
 
 \keywords{generics, specialization, miniboxing, backward compatibility, data representation, performance, Java, bytecode, JVM}
 
-\vspace{-0.5em}
+
 
 \end{abstract}

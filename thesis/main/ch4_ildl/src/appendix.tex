@@ -36,7 +36,7 @@ object GCD {
 
 The most important compiler phases injected by the ADRT plugin are: \postparser{}, \inject{}, \bridge{}, \coerce{} and \commit{}. We show how each of these phases transforms the code. After the source code has been parsed, before type checking and name resolution, the \postparser{} phase inlines the |adrt| scopes and attaches unique ids to the abstract syntax tree (AST) nodes, both for the transformation object and for the transformed scope:
 
-\vspace{-0.3em}
+
 \begin{lstlisting}
 object IntPairAsGaussianInt extends Transformation{
   // same as before
@@ -60,7 +60,7 @@ After the \postparser{} phase, the tree is ready for name resolution and type ch
 
 During type checking, the missing type annotations and implicit conversions are added to the AST:
 
-\vspace{-0.1em}
+
 \begin{lstlisting-nobreak}
 object GCD {
   ...
@@ -74,7 +74,7 @@ object GCD {
 
 After name resolution and type checking, the \inject{} phase transforms the tree attachments into annotations. Since there is a single transformation object in the example, we will use |@repr| to mean |@repr(IntPairAsGaussianInt)|:
 
-\vspace{-0.1em}
+
 \begin{lstlisting-nobreak}
 object GCD {
   ...
@@ -87,7 +87,7 @@ object GCD {
 
 The \inject{} phase takes place right before the Scala signatures are persisted. Therefore, it needs to change the signatures in the |IntPairAsGaussianInt| object as well, by replacing all references to |@high Long| by |@repr (Int, Int)|, except for the two coercions:
 
-\vspace{-0.1em}
+
 \begin{lstlisting-nobreak}
 object IntPairAsGaussianInt extends Transformation{
   // coercions:
@@ -107,7 +107,7 @@ As explained in \S\ref{sec:ildl:separate-compilation} and \S\ref{sec:ildl:langua
 
 Then, the \coerce{} phase introduces coercions and rewrites dynamic calls to bypass methods. The transformation description objects are skipped by the \coerce{} phase, as re-type-checking them with the modified signatures would lead to errors:
 
-\vspace{0.2em}
+
 \begin{lstlisting-nobreak}
 object GCD {
   ...
@@ -120,7 +120,7 @@ object GCD {
 
 Finally, the \commit{} phase transforms the code to:
 
-\vspace{0.2em}
+
 \begin{lstlisting-nobreak}
 object IntPairAsGaussianInt extends Transformation{
   // coercions:
@@ -141,7 +141,7 @@ object GCD {
 
 Later in the compilation pipeline, the |Long| integer is unboxed to |long|, producing the following bytecode (for which we give the source-equivalent Scala code):
 
-\vspace{0.2em}
+
 \begin{lstlisting-nobreak}
 object IntPairAsGaussianInt extends Transformation{
   // coercions:
@@ -161,4 +161,4 @@ object GCD {
 \end{lstlisting-nobreak}
 
 This is the bytecode that will ultimately execute in the Java Virtual Machine. Notice the fact that it executes without any object allocation and does not use dynamic dispatch. This ensures good performance and minimizes the garbage collection pauses. \iv{That's it! Go home everyone!}
-\vspace{-2em}
+

@@ -1,4 +1,4 @@
-\vspace{-0.5em}
+
 \section{Performance Advisories}
 \label{sec:advisories}
 
@@ -13,11 +13,11 @@ The presence of erasure and wildcard-type abstractions (such as |Node[_]|) leads
 
 There key to avoiding these subtle performance regressions is to intercept the class instantiations and method calls that violate the invariant and report actionable advisories to the users, in the form of compiler warnings. Luckily, all the information necessary to detect invariant violations is available during compilation.
 
-\vspace{-0.6em}
+
 
 \subsection{Performance Advisories Overview}
 
-\vspace{-0.2em}
+
 
 Advisories are most commonly triggered by interacting with erased or specialized generics, but can also be caused by technical or design limitations. There are as many as ten different performance advisories implemented in the miniboxing plugin, but in order to focus on the concept, we will only look at the three most common advisories, two of which are caused by the interaction with erased generics. To show exactly how the slowdowns occur, we can take the following piece of code:
 
@@ -160,15 +160,15 @@ res7: Class[_ >: D[_]] = class C_L
 
 Now it is easy to guess where the forward and backward names come from: the direction in which the miniboxing transformation propagates between the type parameter and the type argument.
 
-\vspace{-0.25em}
+
 
 \subsection{Unification: Implementation}
 
-\vspace{-0.5em}
+
 
 The performance advisories are tightly coupled with the unification algorithm, which decides the variant that should be used for transforming the code. The processing is done one step at a time, with a type parameter and type argument pair. We will now show some issues that an implementer must be careful about.
 
-\vspace{-0.5em}
+
 
 \subsubsection{Owner chain status.} Since methods and classes in Scala can be nested in any order, we must be careful to propagate the status of the type parameters in the owner chain. In the following example:
 
@@ -186,7 +186,7 @@ The performance advisories are tightly coupled with the unification algorithm, w
 
 When deciding which miniboxed variant of class |C| to instantiate, we need to be aware of the nested methods we are located in as we duplicate and specialize the code: if we're in method |b_M| inside method |a_M|, we can rely on values of type |A| and |B| to be miniboxed. Contrarily, if we are in method |b| inside method |a|, values of type |A| and |B| are references.
 
-\vspace{-0.5em}
+
 
 \subsubsection{Caching warnings.} Instead of issuing warnings right away, they are being cached and later de-duplicated. The reason is that issuing too many warnings diminishes their value. Aside from the three advisories shown, there are special advisories dealing with the specialization transformation in Scala and certain library constructs that we show in the next section. Thus, we define an ordering of advisory priority and, if multiple warnings are cached, we only issue the most important ones.
 
@@ -206,7 +206,7 @@ When deciding which miniboxed variant of class |C| to instantiate, we need to be
  res2: Int = 3
 \end{lstlisting-nobreak}
 
-\vspace{-0.5em}
+
 
 \subsubsection{Libraries.} In other cases boxing is caused by the interaction with erased generics from libraries. In this case, the default decision is not to warn, unless the programmer specifically sets the |-P:minibox:warn-all| compiler flag:
 

@@ -14,7 +14,7 @@ When interacting with the library from miniboxed code, the programmers forget th
  def mbox[@miniboxed T](t: T): String = spec(t)
 \end{lstlisting-nobreak}
 
-\vspace{-0.2em}
+
 
 The code is translated to:
 
@@ -48,7 +48,7 @@ It may seem like the other way around would be easier: allowing specialized code
 
 With this in mind, our decision was to go with simplicity and symmetry: the bridge between miniboxing and specialization goes through boxing. To allow transparency, miniboxing issues performance advisories about specialized code that should be miniboxed:
 
-\vspace{-0.05em}
+
 
 \begin{lstlisting-nobreak-nolang}
 scala>  def mbox[@miniboxed T](t: T): String = spec(t)
@@ -71,34 +71,34 @@ This solution works well with most of the code that lies within the programmer's
 
 Despite the annotations, with the vanilla miniboxing transformation, all versions of the |tupleMap| method use reference-based tuple accessors and function applications, leading to slow paths irreversibly creeping into miniboxed code. For many applications, this is a no-go, so our task was to eliminate these slowdowns. In the following subsection we present three possible approaches and show where each works best.
 
-\vspace{-0.5em}
+
 
 \subsection{Eliminating the Interoperation Overhead}
 
-\vspace{-0.25em}
+
 
 We show three approaches to eliminating the boxing overhead when calling specialized code from miniboxed classes or methods.
 
-\vspace{-0.5em}
+
 
 \subsubsection{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{sec:tuples});
 
-\vspace{-0.5em}
+
 
 \subsubsection{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{sec:functions});
 
-\vspace{-0.5em}
+
 
 \subsubsection{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{sec:mbarrays}).
 
 The next sections discuss the three methods above.
 
-\vspace{-0.5em}
+
 
 \subsection{Tuple Accessors}
 \label{sec:tuples}
 
-\vspace{-0.25em}
+
 
 The Scala programming language offers a very concise and natural syntax for library tuples, allowing users to write |(3,5)| instead of the desugared |new Tuple2[Int, Int](3,5)|. Similarly, it allows programmers to write |(Int, Int)| instead of |Tuple2[Int, Int]|. If we were to introduce miniboxed tuples, we would not be able to use the syntactic sugar to express programs, losing the support of many programmers. Instead, a better choice is to efficiently access specialized Scala tuples.
 

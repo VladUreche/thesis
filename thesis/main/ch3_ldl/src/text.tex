@@ -385,7 +385,7 @@ A desirable property is that, given a type system with local type inference \cit
 \end{itemize}
 Given these two restrictions, the coercions can ``float'' in the AST and can be optimally inserted.
 
-\vspace{0.3em}
+
 
 Throughout the section we use the following example:
 
@@ -940,7 +940,7 @@ We can compare the miniboxing plugin before and just after the LDL mechanism was
 \includegraphics[width=0.45\textwidth]{graph.eps}
 \caption{Least squares method using linked lists}
 \label{fig:linkedlist}
-\vspace{-1.0em}
+
 \end{figure}
 
 \textbf{Runtime performance.} Since the miniboxing plugin has been around for some time, its runtime performance has been thoroughly benchmarked \cite{miniboxing}. The most recent result is a benchmark on a slice of the Scala collections library \cite{miniboxing-linkedlist} centered around the linked list collection. The benchmark consists of running the least squares method for fitting data points on several input sizes. The results, summarized in Figure \ref{fig:linkedlist}, show a 45\% speedup produced by using the miniboxing transformation. It should be noted that Scala collections are notoriously hard to transform, since they use many advanced features of the language, such as type classes, higher-kinded types and anonymous and nested classes. Indeed, we also tried to run the benchmark with the current specialization transformation in the Scala compiler \cite{iuli-thesis}, but the results were disappointing: due to technical difficulties, the specialized linked list was slower than the generic one.

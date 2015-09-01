@@ -17,7 +17,7 @@ the setting of a library and its clients.
     10K GCD runs, boxed    & 15.0 &    1.9x &        0 &        0 &      8.7 &       11 \\
     10K GCD runs, unboxed  &  2.2 &   12.7x &        0 &        0 &      0.5 &        9 \\ \hline
   \end{tabularx}
-  \vspace{-1.9mm}
+
   \caption{Greatest Common Divisor benchmark results.}
   \label{table:gcd}
 \end{table*}
@@ -33,7 +33,7 @@ Our benchmarking platform, ScalaMeter, executes micro-benchmarks using the follo
   \item When the noise drops below a threshold, execute the benchmark and gather measurements;
 \end{itemize}
 
-\vspace{0.5em}
+
 \noindent
 For each benchmark run, we monitor:
 \begin{itemize}
@@ -42,7 +42,7 @@ For each benchmark run, we monitor:
   \item GC cycles occurring after the run (inter-benchmark);
 \end{itemize}
 
-\vspace{0.5em}
+
 \noindent
 At the end of a cycle, we manually trigger a full GC cycle so the current run does not affect the next. The memory collected after the run (inter-benchmark) corresponds to the input and output data and any garbage produced by running the benchmarked code that was not automatically collected during its execution (in-benchmark).
 
@@ -56,7 +56,7 @@ This allows us to record the following parameters for each benchmark:
   \item Inter-benchmark GC pause time (ms)
 \end{itemize}
 
-\vspace{0.5em}
+
 \noindent
 Since the ADR transformation is directly related to memory layout and, thus, to memory consumption, we paid special attention to GC cycles. Please notice that the benchmark running time includes the in-benchmark GC pause but not the inter-benchmark GC pause. This allows us to separately measure the speedups gained by avoiding GC cycles and from other factors, such as:
 
@@ -68,11 +68,11 @@ Since the ADR transformation is directly related to memory layout and, thus, to 
   \item Lazyfying operations.
 \end{itemize}
 
-\vspace{0.5em}
+
 \noindent
 For each benchmark, we broke down the transformation in several steps, which allowed us to quantify the exact contribution obtained by each transformation step. Unfortunately, due to space constraints, we cannot include the complete analysis in the paper. Interested readers can review it in the accompanying artifact or on the project website \cite{ildl-plugin-wiki}.
 
-\vspace{0.5em}
+
 \noindent
 We chose representative micro-benchmarks in order to cover a wide range of transformations using the |adrt| scope:
 
@@ -83,18 +83,18 @@ We chose representative micro-benchmarks in order to cover a wide range of trans
 \item computing the first 10000 Hamming numbers.
 \end{itemize}
 
-\vspace{0.5em}
+
 \noindent
 All benchmarks are fully automated and use the |adrt| markers and transformation description objects. We will proceed to explain the transformation in each benchmark, but, due to space constraints, the full descriptions are only available on the website.
 
 \subsubsection{The Gaussian Greatest Common Divisor}
 is the running example described in \S\ref{sec:problem} and used throughout the paper. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``original'' benchmark} does not apply any transformation, thus modeling Gaussian integers using Scala's |Tuple2| class. Due to limitations in the specialization \cite{iuli-thesis, specialization-iuli} translation in Scala, the memory footprint of |Tuple2| classes is larger than it should be.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``class'' transformation} applies an |adrt| transformation which encodes Gaussian integers as our own |Complex| class, essentially retrofitting specialization. This obtains a 2x speed improvement and reduces the garbage by 5x:
 
@@ -102,16 +102,16 @@ is the running example described in \S\ref{sec:problem} and used throughout the 
 case class Complex(_1: Int, _2: Int)
 \end{lstlisting-nobreak}
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``boxed'' transformation} encodes Gaussian integers as long integers, but keeps them heap-allocated. This is slower than having our own class since it requires encoding values into the long integer representation. To achieve boxing, we use |java.lang.Long| objects, which the Scala backend does not unbox. The additional value encoding produces a small slowdown and for unknown reasons increases the garbage produced.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``unboxed'' transformation} is the one shown throughout the paper. It encodes Gaussian integers as |scala.Long| values, which are automatically unboxed by the Scala compiler backend. This brings a significant speedup to the benchmark, allowing execution to occur without any heap allocation, as explained in \S\ref{sec:ildl:method}. Compared to using pairs of integers, the speedup is almost 13x and the garbage is reduced by
 27x.
 
-\vspace{0.5em}
+
 \noindent
 The transformation description objects for the three transformations above range between 30 and 40 lines of code and include more operations than necessary for the benchmark, such as addition, multiplication, multiplication with integers, subtraction, etc.
 
@@ -128,7 +128,7 @@ The transformation description objects for the three transformations above range
     LSM, manual deforestation  &  195 &   42.4x &        0 &        0 &      702 &     5269 \\
     LSM, manual fusion     &   79 &  105.0x &        0 &        0 &      702 &     5282 \\ \hline
   \end{tabularx}
-  \vspace{-1.9mm}
+
   \caption{Least Squares Method benchmark results.}
   \label{table:lslr}
 \end{table*}
@@ -163,18 +163,18 @@ The |LazyList| collection achieves deforestation by recording the mapped functio
 
 To put the transformation into context, we explored several scenarios:
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``original'' case} executes the least squares method on 5 million points without any transformation. Table \ref{table:lslr} shows that, on average, as much as 1.1 GB of heap memory is reclaimed during the benchmark run, significantly slowing down the execution. If it was not for the in-benchmark GC pause, the execution would take around 700ms, in line with the other transformations.
 
 \noindent
 What we can also notice is that, across all benchmarks, the input data occupies around 700MB of heap space and is only collected at the end of the benchmark. A back-of-the-envelope calculation can confirm this: each linked list node takes 32 bytes (2-word header + 8-byte pointer to value + 8-byte pointer to the next cell) and contains a tuple of 48 bytes (2-word header + two 8-byte pointers and two 8-byte doubles, due to limitations in specialization), which itself contains 16 bytes per boxed double. Considering 5 million such nodes, we have: $(32 + 48 + 2 \times 16) * 5 \times 10^6 = 560 \times 10^6$, approximately 560MB of data.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``blitz'' transformation} uses the dedicated collection optimization tool |scalablitz| \cite{scalablitz, scalablitz-paper} to improve performance. Under the hood, scalablitz uses compile-time macros to rewrite the code and improve its performance. Indeed, the tool manages to both cut down on garbage generation and improve the running performance of the code.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``adrt'' transformation} performs deforestation by automatically introducing |LazyList|s. This avoids the creation of intermediate lists and thus significantly reduces the garbage produced. We tried using two versions of |LazyList|: one using erased generics (adrt generic) and one using miniboxing \cite{miniboxing} specialization (adrt miniboxed).
 
@@ -197,13 +197,13 @@ The miniboxed |LazyList|, on the other hand, both executed faster and did not pr
     10001-th number, step 2 & 2.16 &    3.0x &        0 &        0 &       31 &       12 \\
     10001-th number, step 3 & 1.64 &    4.0x &        0 &        0 &       31 &       10 \\ \hline
   \end{tabularx}
-  \vspace{-1.9mm}
+
   \caption{Sensor Readings and Hamming Numbers benchmark results.}
   \label{table:sparkle}
-%   \vspace{-1em }
+
 \end{table*}
 
-\vspace{0.5em}
+
 \noindent
 \textbf{Manual transformations} complete the picture: in the ``deforestation'' transformation we write C-like while loops by hand to traverse the input list. We use four separate loops, to simulate the best case scenario for an automated transformation. The result is a 1.43x speedup compared to ``adrt miniboxed''.
 
@@ -274,19 +274,19 @@ An observation is that, for the first 10000 Hamming numbers, there is no need to
 
 As with other benchmarks, we broke down the transformation is several steps:
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``original'' code} is the unmodified version from the Rosetta Code website, which we kept as a witness.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``step1'' code} uses |adrt| scopes to replace the |Queue| object with a custom, fixed-size array-based circular buffer. This collection specialization brings a 2.4x speedup without any memory layout transformation.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``step2'' code} uses |adrt| scopes to replace the |BigInt| object in both class |Hamming| and the circular buffer by boxed |java.lang.Long| objects. This additional range restriction brings an extra 1.25x speedup.
 
-\vspace{0.5em}
+
 \noindent
 \textbf{The ``step3'' code} replaces the |BigInt| objects by unboxed |scala.Long| values. This unboxing operation produces an additional 1.31x speedup, as fewer objects are created during the benchmark execution.
 
@@ -309,10 +309,10 @@ For this example, the two transformation objects are 100 LOC and the circular bu
     SumOfSqEven        &          92.3 ms &          189.6 ms &             48.7 ms \\
     Cart               &         217.4 ms &          214.9 ms &             57.5 ms \\ \hline
   \end{tabularx}
-  \vspace{-2mm}
+
   \caption{Scala Streams pipelines for 10M elements.}
   \label{table:streams}
-  \vspace{-1em}
+
 \end{table}
 
 The |adrt| scoped transformation is a conceptual generalization of a mechanism
@@ -347,10 +347,10 @@ Our data representation transformation converts the references to |Function1| in
     Miniboxing without functions   &         3.080 $\mu$s \\
     Generic                        &        13.409 $\mu$s \\ \hline
   \end{tabularx}
-  \vspace{-2mm}
+
   \caption{Mapping a 1K vector.}
   \label{table:framian}
-  \vspace{-1em}
+
 \end{table}
 
 \subsubsection{The Scala-Streams library} \cite{biboudis_clash_2014} imitates the design of the Java 8 stream library, to achieve high performance (relative to standard Scala libraries) for functional operations on data streams. The library is available as an open-source implementation \cite{biboudis-streams}. In its continuation-based design, each stream combinator provides a function that is stacked to form a transformation pipeline. As the consumer reads from the final stream, the transformation pipeline is executed, processing an element from the source into an output element. However, the pipeline architecture is complex, since combinators such as |filter| may drop elements, stalling the pipeline.
@@ -370,4 +370,4 @@ representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the
 
 
 \subsubsection{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
-\vspace{-1em}
+

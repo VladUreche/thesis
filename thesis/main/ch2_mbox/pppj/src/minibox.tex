@@ -103,15 +103,15 @@ Knowing the type byte, the |minibox2string| can do its magic: decoding the long 
 
 So far, we have only looked at methods, but transforming classes poses even greater challenges.
 
-\vspace{-0.3em}
+
 
 \subsection{Class Transformation in Project Valhalla}
 
-\vspace{-0.3em}
+
 
 Project Valhalla takes a straight-forward approach to specialization: classes are duplicated and all previous references to the type parameters are transformed. Given the linked list node class:
 
-\vspace{-0.05em}
+
 
 \begin{lstlisting-nobreak}
  public class Node<`any` T> {
@@ -133,11 +133,11 @@ Project Valhalla takes a straight-forward approach to specialization: classes ar
  }
 \end{lstlisting-nobreak}
 
-\vspace{-0.05em}
+
 
 When specializing the |Node| class for the |int| primitive type, Project Valhalla employs its custom classloader to clone and adapt the bytecode for class |Node|. Among other transformations, it replaces references to |T| by |int| \cite{goetz-specialization}:
 
-\vspace{-0.05em}
+
 
 \begin{lstlisting-nobreak}
  // Node_{T=int} corresponds to Node<int> in the code:
@@ -147,7 +147,7 @@ When specializing the |Node| class for the |int| primitive type, Project Valhall
    // ... continued on the next page
 \end{lstlisting-nobreak}
 
-\vspace{-0.05em}
+
 
 \begin{lstlisting-nobreak}
    public Node(int head, Node_{T=int} tail) {
@@ -318,11 +318,11 @@ This method is translated to:
 
 At this point, you may be wondering why the |getFirst| bytecode receives a parameter of type |Node| instead of |Node_L|, or, respectively, |Node_M|. The reason is interoperability with erased generics.
 
-\vspace{-0.3em}
+
 %This translation scheme, although not the only one, satisfies the three criteria set above.
 
 \subsection{Interoperating with Erased Generics}
-\vspace{-0.2em}
+
 
 So far, we have seen the following two invariants:
 \begin{itemize}

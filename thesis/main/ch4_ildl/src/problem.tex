@@ -1,17 +1,17 @@
-\vspace{-0.9em}
+
 
 \section{Motivation and Overview}
 \label{sec:problem}
 
-\vspace{-0.2em}
+
 
 This section presents a motivating example featuring the complex numbers transformation, which we use throughout the paper. It then shows how the data representation transformation is triggered and introduces the main concepts. Finally, it shows a naive transformation, hinting at the difficulties lying ahead.
 
-\vspace{-0.6em}
+
 
 \subsection{Motivating Example}
 
-\vspace{-0.2em}
+
 
 In the introduction, we focused on adding complex number semantics to pairs of integers. Complex numbers with integers as both their real and imaginary parts are known as Gaussian integers \cite{gauss1828theoria,gaussian-integers-wikipedia}, and are a countable subset of all complex numbers. The operations defined on Gaussian integers are similar to complex number operations, with one
 exception: to satisfy the abelian closure property, division is not precise, but instead rounds the result to the nearest Gaussian integer, with both the real and imaginary axes containing integers. This is similar to integer division, which also rounds the result, so that, for example, |5/2| produces value |2|.
@@ -44,21 +44,21 @@ The result is (10, 3).
 
 This rather large speedup, of 13x, is the effect of using the long integer representation for Gaussian Integers, which:
 
-\vspace{0.25em}
+
 \begin{itemize}
   \item[(1)] Provides a direct representation, which does not require any pointer dereferencing;
   \item[(2)] Allocates Gaussian integers on the stack, since the |Long| primitive type is unboxed by the compiler backend, thus avoiding object allocation and garbage collector pauses.
 \end{itemize}
-\vspace{0.25em}
+
 
 The Benchmarks section (\S\ref{sec:benchmarks}) shows the contribution of each element to the speedup. This example (and many others in the Benchmarks section) show that optimizing the data representation is worthwhile. However, transforming the code by hand is both tedious and error-prone. %, so an automated transformation would be preferable.
 
-\vspace{-0.6em}
+
 
 \subsection{Automating the Transformation}
 \label{sec:automating}
 
-\vspace{-0.2em}
+
 
 In order to reap the benefits of using the improved representation without manually transforming the code, we present the Ad hoc Data Representation (ADR) Transformation technique, which is triggered by the |adrt| marker. This marker method accepts two parameters: the first parameter is the \emph{transformation description object} and the second is a block of code that constitutes the \emph{transformation scope}, which can contain anything from expressions all the way to method or even class definitions:
 
@@ -89,7 +89,7 @@ object IntPairComplexToLongComplex
 \noindent
 Transformation description objects are described in more detail in \S\ref{sec:ildl}, but we can already preview their components:
 
-\vspace{0.35em}
+
 \begin{itemize}
   \item The |toRepr| and |toHigh| methods serve a double purpose:
   \begin{itemize}
@@ -98,22 +98,22 @@ Transformation description objects are described in more detail in \S\ref{sec:il
   \end{itemize}
   \item The ``bypass methods'' part of the definition allows operations such as |*|, |%| and |norm| to run directly on values \emph{encoded} in the representation type (in this case |Long|), instead of \emph{decoding} them back to the high-level type in order to execute the dynamic dispatch. We explain how bypass methods are defined and used later on, in \S\ref{sec:ildl:method}.
 \end{itemize}
-\vspace{0.35em}
+
 
 Description objects split the task of optimizing the data representation into:
 
-\vspace{0.35em}
+
 \begin{itemize}
 \item[(1)] Devising an improved data representation: Defining the improved data representation is done once and uses domain-specific knowledge about the program. Therefore, we let the developer decide how data should be encoded and how operations should be handled. This information is stored in the description object.
 \item[(2)] Transforming the source code to use the improved representation, based on the description object: This is repetitive, tedious and error-prone work, which we completely automate away.
 \end{itemize}
-\vspace{0.35em}
+
 
 A natural question to ask is why not automate the process of finding a better data representation? Any change in the data representation speeds up certain patterns at the expense of slowing down others. For example, unboxing primitive types speeds up monomorphic code, which handles primitives directly. Yet, erased generics still require values to be boxed, so any interaction with them triggers boxing operations, which slow down execution.
 
 Furthermore, there are many aspects that can be optimized: eliminating pointer dereferencing, improving cache locality, reducing the memory footprint to avoid garbage collection pauses, reducing numeric value ranges, specializing or delaying operations, and many others. Thus, there are many choices to make, depending on the context, to the point where automation does not make sense. Instead, armed with application profiles and domain-specific information about how the data is used, a programmer can decide what is the best transformation to apply to each critical part of an application. And, interestingly, not all parts of an application have the same needs. This is where scopes come in.
 
-\vspace{-0.2em}
+
 
 \subsubsection{The transformation scope} is delimited by the |adrt| marker method, which behaves much like a keyword. Values, methods and classes defined in the scope are also visible outside, since the inlining occurs early in the compilation pipeline:
 
@@ -131,12 +131,12 @@ scala> timed(() => gcdADRT((544, 185), (131, 181)))
 
 Scoped transformations bring two advantages:
 
-\vspace{0.25em}
+
 \begin{itemize}
  \item Different parts of a program can use different transformations, using the best data representation for the task;
  \item Transformations are clearly marked in the source code.
 \end{itemize}
-\vspace{0.25em}
+
 
 The fact that different transformations can be applied to different components gives the ADR transformation its scoped nature, and sets it apart from classical optimizations such as unboxing primitive types, generic specialization and value class inlining, which occur globally. However, this scoped nature makes the transformation more complex, as the next paragraphs will show.
 
