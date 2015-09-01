@@ -35,7 +35,7 @@ Since the types assigned to tree nodes do not reference the specialized variants
 
 This section will work its way from small examples to describing the new elements in the miniboxing transformation, as compared to specialization. In order to simplify the presentation, we will use the |Long|-based encoding for miniboxing, but the transformation can still be generalized to any number of storage types.
 
-\subsubsection{Type Bytes}
+\subsubsection*{Type Bytes}
 \label{sec-mb-traf-type-bytes}
 
 Type-encoding bytes (or type bytes for short) record the original type of the miniboxed values. Translating the following example shows when type bytes are necessary:
@@ -96,7 +96,7 @@ In the final step, the tree rewrite rules will transform the call to |MiniboxToB
 
 The next section will explain why it is necessary to carry the type parameter |T|.
 
-\subsubsection{Shallow and Deep Type Transformations}
+\subsubsection*{Shallow and Deep Type Transformations}
 \label{sec-mb-traf-shallow}
  
 To further understand the miniboxing transformation, let us look at a more complex example, which builds a linked list with a single element:
@@ -120,7 +120,7 @@ The return type is incorrect, as we expect |list(3)| to return a |ListNode[Int]|
 
 The shallow type transformation also changes types of local variables from |T| to |Long| and recursively transforms all nested methods and classes within the piece of code it is adapting. This propagates the storage type representation throughout the code.
 
-\subsubsection{Peephole Transformation}
+\subsubsection*{Peephole Transformation}
 \label{sec-mb-traf-peephole}
 
 The last transformation to touch the code before it is shipped to the next phase is the peephole transformation, which performs a final sweep over the code to remove redundant conversions. To show this phase at work, let us consider what happens if the |ListNode| class in the last example is also annotated for miniboxing. In this case, the class will have a miniboxed variant, |ListNode_M| to which the instantiation is rewired. Since the |head| parameter of the |ListNode| constructor is boxed, while the |head| parameter of the |ListNode_M| constructor is miniboxed, the transformation will introduce a new |BoxToMinibox| conversion:   
@@ -139,7 +139,7 @@ Converting from |Long| to the boxed representation and back before creating the 
 
 The code produced by the rewiring phase can be optimized by a single pass of the peephole transformation so there is no need to iterate until a fixed point is reached.
 
-\subsubsection{Type Bytes in Classes}
+\subsubsection*{Type Bytes in Classes}
 \label{sec-mb-traf-classes}
 
 The class translation is slightly more complex than method translation. For classes, type bytes are also included as fields in the miniboxed variants, to allow the class' methods to encode and decode miniboxed values as necessary: % An example is the translation for the |ListNode| class:

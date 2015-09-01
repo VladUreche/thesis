@@ -272,7 +272,7 @@ classloader - factory - cold   &  655 $\pm$ 9 &     378 \\
 \label{tbl-results-classloading-inst}
 \end{table}
 
-\subsubsection{Time Spent Specializing}
+\subsubsection*{Time Spent Specializing}
 
 Table \ref{tbl-results-main}, in the ``|List| creation'' column, shows the overhead of the double factory mechanism and class specialization is not statistically noticeable after the mechanism is warmed up. Nevertheless, it is important to understand how the mechanism behaves during a cold start, as this directly impacts an application's startup time. In this subsection we will examine the overhead for a cold start, coming from two different sources:
 
@@ -291,7 +291,7 @@ The first experiment involves loading the class: this can be done either by usin
 
 The second experiment involves instantiating the class, either directly (using the |new| operator) or through the double factory mechanism. Table \ref{tbl-results-classloading-inst} presents the results. The surprising result of this experiment is that the overhead caused by the double factory mechanism is under 4\%. As before, most of the time is spent specializing the template to produce the specialized class, which, depending on whether the classloader was used before, can lead to a slowdown between 84\% and 144\%. It is important to point out this overhead is a one-time cost, and further instantiations of the specialized variants take on the order of tens of milliseconds. 
 
-\subsubsection{Heap Overhead}
+\subsubsection*{Heap Overhead}
 
 In this section we will attempt to bound the heap usage of the double factory mechanism. The double factory mechanism consists of a first level factory, which uses reflection to create second level factories, which, in turn, use the new operator to instantiate load-time specialized classes. This mechanism was imposed in order to avoid the cost of reflection-based instantiation, which we found to be more expensive in terms of overhead. Each second level factory corresponds to a set of pre-determined type tags, thus instantiating two specialized variants will require two separate second level factories.
 

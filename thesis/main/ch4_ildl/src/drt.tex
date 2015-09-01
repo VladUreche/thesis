@@ -49,7 +49,7 @@ source code for the program abstract syntax trees (ASTs) after each of
 these phases.
 
 
-\subsubsection{The \inject{} phase} is responsible for marking each symbol with its desired representation. In the case of primitive integer unboxing, the annotation is |@unboxed|, and it signals that the value should be stored in the unboxed |int| representation. As an optimization, instead of adding a |@boxed| annotation for the corresponding cases, symbols that are not marked are automatically considered boxed. Following the \inject{} phase, the previous example will be transformed to:
+\subsubsection*{The \inject{} phase} is responsible for marking each symbol with its desired representation. In the case of primitive integer unboxing, the annotation is |@unboxed|, and it signals that the value should be stored in the unboxed |int| representation. As an optimization, instead of adding a |@boxed| annotation for the corresponding cases, symbols that are not marked are automatically considered boxed. Following the \inject{} phase, the previous example will be transformed to:
 
 
 \begin{lstlisting-nobreak}
@@ -67,7 +67,7 @@ the properties of the LDL transformation is that boxed and unboxed
 values are compatible in the \inject{} phase, so there are no coercions.
 
 
-\subsubsection{The \coerce{} phase,} as its name suggests, introduces coercions. This is done by changing the annotation semantics: annotated types become incompatible with their un-annotated counterparts. This change in the annotation semantics corresponds to introducing the different representations: each annotation corresponds to a representation, and representations are not compatible with each other. With this change, an assignment from one representation to another will lead to mismatching types. Therefore, by re-type-checking the tree, the \coerce{} phase can detect representation mismatches and can patch them using coercions. In the example, the last line contains such a mismatch:
+\subsubsection*{The \coerce{} phase,} as its name suggests, introduces coercions. This is done by changing the annotation semantics: annotated types become incompatible with their un-annotated counterparts. This change in the annotation semantics corresponds to introducing the different representations: each annotation corresponds to a representation, and representations are not compatible with each other. With this change, an assignment from one representation to another will lead to mismatching types. Therefore, by re-type-checking the tree, the \coerce{} phase can detect representation mismatches and can patch them using coercions. In the example, the last line contains such a mismatch:
 
 \begin{lstlisting-nobreak}
 val i: @unboxed Int = 1 // expected/found: @unboxed
@@ -88,7 +88,7 @@ It is clear that the two definitions will always produce the same result. Yet, t
 From our perspective, optimality means that once representations are chosen and annotated, the \coerce{} phase will not introduce any redundant coercions, so data will be seamlessly passed along with as few coercions as possible.
 
 
-\subsubsection{The \commit{} phase} is responsible for introducing the actual representations. In the case of primitive unboxing, |@unboxed Int| is replaced by |int|, and |Int|, which is considered boxed, is replaced by |java.lang.Integer|. The |box| and |unbox| coercions are also replaced by the creation of objects and, respectively, by the extraction of the unboxed value:
+\subsubsection*{The \commit{} phase} is responsible for introducing the actual representations. In the case of primitive unboxing, |@unboxed Int| is replaced by |int|, and |Int|, which is considered boxed, is replaced by |java.lang.Integer|. The |box| and |unbox| coercions are also replaced by the creation of objects and, respectively, by the extraction of the unboxed value:
 
 
 \begin{lstlisting-nobreak}
@@ -104,7 +104,7 @@ The \commit{} phase is responsible for the consistency of the transformation. Si
 
 The LDL mechanism targets object-oriented programming languages, which pose unique challenges for data representation transformations. This section will describe the additional rules necessary in LDL to handle object-orientation.
 
-\subsubsection{Object-oriented Patterns.} Aside from introducing coercions, data representation transformations must handle object-oriented patterns, such as method calls and subtyping. Not all representations can be used with these patterns. For example, it is not possible to call the |toString| method on the unboxed |int| representation:
+\subsubsection*{Object-oriented Patterns.} Aside from introducing coercions, data representation transformations must handle object-oriented patterns, such as method calls and subtyping. Not all representations can be used with these patterns. For example, it is not possible to call the |toString| method on the unboxed |int| representation:
 
 \begin{lstlisting-nobreak}
 val a: `@unboxed Int` = 1
@@ -128,6 +128,6 @@ println(`bypass_toString`(a))
 
 Subtyping is handled in a similar fashion, by requiring the boxed representation, which can be assigned to supertypes.
 
-\subsubsection{Support for Generics.} The Late Data Layout mechanism is agnostic to generics. This means that, depending on the transformation semantics and the implementation of generics, the mechanism can inject annotations in the type arguments or not. For example, if generics are erased, a list of integers will have type |List[Int]|, since values need to be boxed. If generics are unboxed and reified, the list type will be |List[@unboxed Int]|. The LDL paper \cite{ldl} shows examples of both cases: when annotations are propagated inside generics and when they are not. The LDL mechanism adapts seamlessly to either case.
+\subsubsection*{Support for Generics.} The Late Data Layout mechanism is agnostic to generics. This means that, depending on the transformation semantics and the implementation of generics, the mechanism can inject annotations in the type arguments or not. For example, if generics are erased, a list of integers will have type |List[Int]|, since values need to be boxed. If generics are unboxed and reified, the list type will be |List[@unboxed Int]|. The LDL paper \cite{ldl} shows examples of both cases: when annotations are propagated inside generics and when they are not. The LDL mechanism adapts seamlessly to either case.
 
 Having seen the Late Data Layout mechanism at work for unboxing primitive types, we can now extend it to allow the more complex, programmer-driven, Ad hoc Data Representation Transformation.

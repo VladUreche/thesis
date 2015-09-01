@@ -65,7 +65,7 @@ Two problems occur here:
 
 These two problems correspond to the main two performance advisories: forward and backward warnings. A third one, related to data representation ambiguity, will be shown below.
 
-\subsubsection{Forward advisories.} The first advisory (compiler warning) received by the programmer is also called a forward warning:
+\subsubsection*{Forward advisories.} The first advisory (compiler warning) received by the programmer is also called a forward warning:
 
 \begin{lstlisting-nobreak-nolang}
 test.scala:7: warning: The method bar would benefit from miniboxing type parameter U, since it is instantiated by miniboxed type parameter T of method foo:
@@ -76,7 +76,7 @@ test.scala:7: warning: The method bar would benefit from miniboxing type paramet
 
 This advisory pushes the miniboxed representation from caller to callee when the arguments need to be boxed before being passed.
 
-\subsubsection{Backward advisories.} The miniboxing annotation is also propagated from callee to caller:
+\subsubsection*{Backward advisories.} The miniboxing annotation is also propagated from callee to caller:
 
 \begin{lstlisting-nobreak-nolang}
 test.scala:8: warning: The following code could benefit from miniboxing specialization if the type parameter U of method bar would be marked as "@miniboxed U" (it would be used to instantiate miniboxed type parameter V of method baz):
@@ -85,7 +85,7 @@ test.scala:8: warning: The following code could benefit from miniboxing speciali
                                      ^
 \end{lstlisting-nobreak-nolang}
 
-\subsubsection{Ambiguity advisories.} Scala allows types to abstract over both primitives and objects. For example, wildcard types (known as existentials in Scala) can abstract over any type in the language. |Any| is the top of the Scala type system hierarchy, with two subclasses: |AnyVal| is the superclass of all value types (and thus primitives) while |AnyRef| is the superclass of all reference types, corresponding to Java's |Object|. Therefore, existentials, |Any| and |AnyVal| are not specific enough to pick a primitive or a reference representation. In this case, we issue a warning and box the values:
+\subsubsection*{Ambiguity advisories.} Scala allows types to abstract over both primitives and objects. For example, wildcard types (known as existentials in Scala) can abstract over any type in the language. |Any| is the top of the Scala type system hierarchy, with two subclasses: |AnyVal| is the superclass of all value types (and thus primitives) while |AnyRef| is the superclass of all reference types, corresponding to Java's |Object|. Therefore, existentials, |Any| and |AnyVal| are not specific enough to pick a primitive or a reference representation. In this case, we issue a warning and box the values:
 
 \begin{lstlisting-nobreak-nolang}
 test.scala:12: warning: Using the type argument "Any" for the miniboxed type parameter T of method foo is not specific enough, as it could mean either a primitive or a reference type. Although method foo is miniboxed, it won't benefit from specialization:
@@ -170,7 +170,7 @@ The performance advisories are tightly coupled with the unification algorithm, w
 
 
 
-\subsubsection{Owner chain status.} Since methods and classes in Scala can be nested in any order, we must be careful to propagate the status of the type parameters in the owner chain. In the following example:
+\subsubsection*{Owner chain status.} Since methods and classes in Scala can be nested in any order, we must be careful to propagate the status of the type parameters in the owner chain. In the following example:
 
 \begin{lstlisting-nobreak}
  def a[@miniboxed A] = {
@@ -188,9 +188,9 @@ When deciding which miniboxed variant of class |C| to instantiate, we need to be
 
 
 
-\subsubsection{Caching warnings.} Instead of issuing warnings right away, they are being cached and later de-duplicated. The reason is that issuing too many warnings diminishes their value. Aside from the three advisories shown, there are special advisories dealing with the specialization transformation in Scala and certain library constructs that we show in the next section. Thus, we define an ordering of advisory priority and, if multiple warnings are cached, we only issue the most important ones.
+\subsubsection*{Caching warnings.} Instead of issuing warnings right away, they are being cached and later de-duplicated. The reason is that issuing too many warnings diminishes their value. Aside from the three advisories shown, there are special advisories dealing with the specialization transformation in Scala and certain library constructs that we show in the next section. Thus, we define an ordering of advisory priority and, if multiple warnings are cached, we only issue the most important ones.
 
-\subsubsection{Suppressing warnings.} In certain scenarios, programmers are aware of their sub-optimal erased generic code but, due to compatibility requirements with other JVM programs or due to the fact that code lies outside the hot path, they chose not to change it. In these situations, they need to suppress the warnings, because instead of improving visibility, they might obscure other more important performance regressions in the program. However, a coarse-grained approach such as turning off all warnings is not desirable either, as it completely voids the benefit of advisories. For this scenario, the miniboxing transformation provides the |@generic| annotation, which can suppress performance advisories:
+\subsubsection*{Suppressing warnings.} In certain scenarios, programmers are aware of their sub-optimal erased generic code but, due to compatibility requirements with other JVM programs or due to the fact that code lies outside the hot path, they chose not to change it. In these situations, they need to suppress the warnings, because instead of improving visibility, they might obscure other more important performance regressions in the program. However, a coarse-grained approach such as turning off all warnings is not desirable either, as it completely voids the benefit of advisories. For this scenario, the miniboxing transformation provides the |@generic| annotation, which can suppress performance advisories:
 
 \begin{lstlisting-nobreak}
  scala> def zoo[`@miniboxed` T](t: T) = t
@@ -208,7 +208,7 @@ When deciding which miniboxed variant of class |C| to instantiate, we need to be
 
 
 
-\subsubsection{Libraries.} In other cases boxing is caused by the interaction with erased generics from libraries. In this case, the default decision is not to warn, unless the programmer specifically sets the |-P:minibox:warn-all| compiler flag:
+\subsubsection*{Libraries.} In other cases boxing is caused by the interaction with erased generics from libraries. In this case, the default decision is not to warn, unless the programmer specifically sets the |-P:minibox:warn-all| compiler flag:
 
 \begin{lstlisting-nobreak-nolang}
  scala> 3 :: Nil

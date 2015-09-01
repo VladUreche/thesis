@@ -87,7 +87,7 @@ We chose representative micro-benchmarks in order to cover a wide range of trans
 \noindent
 All benchmarks are fully automated and use the |adrt| markers and transformation description objects. We will proceed to explain the transformation in each benchmark, but, due to space constraints, the full descriptions are only available on the website.
 
-\subsubsection{The Gaussian Greatest Common Divisor}
+\subsubsection*{The Gaussian Greatest Common Divisor}
 is the running example described in \S\ref{sec:problem} and used throughout the paper. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
 
 
@@ -133,7 +133,7 @@ The transformation description objects for the three transformations above range
   \label{table:lslr}
 \end{table*}
 
-\subsubsection{The Least Squares Method} takes a list of points in two dimensions and computes the slope and offset of a straight line that best approximates the input data. The benchmark performs multiple traversals over the input data and thus can benefit from deforestation \cite{wadler-deforestation}, which avoids the creation of intermediate collections after each |map| operation:
+\subsubsection*{The Least Squares Method} takes a list of points in two dimensions and computes the slope and offset of a straight line that best approximates the input data. The benchmark performs multiple traversals over the input data and thus can benefit from deforestation \cite{wadler-deforestation}, which avoids the creation of intermediate collections after each |map| operation:
 
 \begin{lstlisting-nobreak}
 adrt(ListAsLazyList){
@@ -211,7 +211,7 @@ The ``fusion'' manual transformation unites the four separate input list travers
 
 In terms of programmer effort, the |LazyList| definition takes about 60 LOC and the transformation description object about 30 LOC. The difference between ``adrt erased'' and ``adrt miniboxed'' is the presence of |@miniboxed| annotations in the |LazyList| classes and in the description object.
 
-\subsubsection{The Sensor Readings} benchmark is inspired by the Sparkle visualization tool \cite{sparkle}, which is able to quickly display, zoom, transform and filter sensor readings. To obtain nearly real-time results, Sparkle combines several optimizations such as streaming and array-of-struct to struct-of-array conversions, all currently implemented by hand. In our benchmark, we implemented a mock-up of the Sparkle processing core and automated the array-of-struct to struct-of-array transform:
+\subsubsection*{The Sensor Readings} benchmark is inspired by the Sparkle visualization tool \cite{sparkle}, which is able to quickly display, zoom, transform and filter sensor readings. To obtain nearly real-time results, Sparkle combines several optimizations such as streaming and array-of-struct to struct-of-array conversions, all currently implemented by hand. In our benchmark, we implemented a mock-up of the Sparkle processing core and automated the array-of-struct to struct-of-array transform:
 
 \begin{lstlisting-nobreak}
 type SensorReadings = Array[(Long, Long, Double)]
@@ -239,7 +239,7 @@ In all four cases, the amount of memory allocated is approximately the same and 
 
 The transformation description object is 50 LOC and requires 20 additional LOC to define implicit conversions.
 
-\subsubsection{The Hamming Numbers Benchmark} computes numbers that only have 2, 3 and 5 as their prime factors, in order. Unlike the other benchmarks, this is an example we randomly picked from Rosetta Code \cite{rosetta-code} and attempted to speed up:
+\subsubsection*{The Hamming Numbers Benchmark} computes numbers that only have 2, 3 and 5 as their prime factors, in order. Unlike the other benchmarks, this is an example we randomly picked from Rosetta Code \cite{rosetta-code} and attempted to speed up:
 
 \begin{lstlisting-nobreak}
 adrt(BigIntToLong) {
@@ -353,7 +353,7 @@ Our data representation transformation converts the references to |Function1| in
 
 \end{table}
 
-\subsubsection{The Scala-Streams library} \cite{biboudis_clash_2014} imitates the design of the Java 8 stream library, to achieve high performance (relative to standard Scala libraries) for functional operations on data streams. The library is available as an open-source implementation \cite{biboudis-streams}. In its continuation-based design, each stream combinator provides a function that is stacked to form a transformation pipeline. As the consumer reads from the final stream, the transformation pipeline is executed, processing an element from the source into an output element. However, the pipeline architecture is complex, since combinators such as |filter| may drop elements, stalling the pipeline.
+\subsubsection*{The Scala-Streams library} \cite{biboudis_clash_2014} imitates the design of the Java 8 stream library, to achieve high performance (relative to standard Scala libraries) for functional operations on data streams. The library is available as an open-source implementation \cite{biboudis-streams}. In its continuation-based design, each stream combinator provides a function that is stacked to form a transformation pipeline. As the consumer reads from the final stream, the transformation pipeline is executed, processing an element from the source into an output element. However, the pipeline architecture is complex, since combinators such as |filter| may drop elements, stalling the pipeline.
 
 Table \ref{table:streams} shows the result of applying our data
 representation transformation to the Scala-Streams published
@@ -369,5 +369,5 @@ speedup relative to the miniboxed code without the function
 representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the llama's ass!}
 
 
-\subsubsection{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
+\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
 

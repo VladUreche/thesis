@@ -81,15 +81,15 @@ We show three approaches to eliminating the boxing overhead when calling special
 
 
 
-\subsubsection{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{sec:tuples});
+\subsubsection*{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{sec:tuples});
 
 
 
-\subsubsection{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{sec:functions});
+\subsubsection*{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{sec:functions});
 
 
 
-\subsubsection{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{sec:mbarrays}).
+\subsubsection*{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{sec:mbarrays}).
 
 The next sections discuss the three methods above.
 
@@ -104,7 +104,7 @@ The Scala programming language offers a very concise and natural syntax for libr
 
 Although we don't have statistically significant data, our experience suggests that |Tuple| classes have their components accessed only a few times during their life. Therefore, both for compatibility reasons and to avoid costly conversions, we decided to allow the |Tuple| class to remain unchanged, instead focusing on providing accessors and constructors that use the miniboxed encoding.
 
-\subsubsection{The optimized tuple accessors} are written by hand and are explicitly given the type byte:
+\subsubsection*{The optimized tuple accessors} are written by hand and are explicitly given the type byte:
 
 \begin{lstlisting-nobreak}
  def tuple1_accessor_1[T](T_Tag: Byte, tp: Tuple1[T]) =
@@ -121,10 +121,10 @@ Although we don't have statistically significant data, our experience suggests t
 Once the tuple is cast to a |Tuple1[Int]|, the specialization transformation kicks in and transforms the call to |_1| into a specialized call to |_1_I|, the integer variant. Since the |int2minibox| conversion also takes an unboxed integer, the overhead of boxing is completely eliminated.
 
 
-\subsubsection{The specialized constructors} are motivated by two observations: (1) allocating tuples in the miniboxed code without special support requires boxing and, even worse (2) the tuples created use the reference-based variant of the specialized class, thus voiding the benefits of having added tuple accessors. The code for the tuple constructors is also written by hand and is very similar to the accessor code: it dispatches on the type tags to create tuples of primitive types, which specialization can rewrite to the optimized variants. \iv{It's quite a bit of code, but we copy-pasted and adapted it.}
+\subsubsection*{The specialized constructors} are motivated by two observations: (1) allocating tuples in the miniboxed code without special support requires boxing and, even worse (2) the tuples created use the reference-based variant of the specialized class, thus voiding the benefits of having added tuple accessors. The code for the tuple constructors is also written by hand and is very similar to the accessor code: it dispatches on the type tags to create tuples of primitive types, which specialization can rewrite to the optimized variants. \iv{It's quite a bit of code, but we copy-pasted and adapted it.}
 
 
-\subsubsection{Introducing accessors and constructors} is done by the miniboxing plugin when encountering a tuple access followed by a conversion to the miniboxed representation or when the tuple constructor is invoked with all the arguments being transformed from the miniboxed representation to the boxed one. There are two reasons this step needs to be automated:
+\subsubsection*{Introducing accessors and constructors} is done by the miniboxing plugin when encountering a tuple access followed by a conversion to the miniboxed representation or when the tuple constructor is invoked with all the arguments being transformed from the miniboxed representation to the boxed one. There are two reasons this step needs to be automated:
 
 \begin{itemize}
  \item By default, programmers do not have access to the type bytes directly, as this would allow them to introduce unsoundness in the type system (they can inspect their representation using miniboxing reflection, but this is outside the scope);
@@ -173,7 +173,7 @@ In our early experiments on transforming the Scala collections hierarchy using t
 
 Our initial approach used accessors, but we soon learned that switching on as many as 3 type bytes with each function application incurs a significant overhead. Instead, we decided to re-introduce |MbFunctionX| within the code compiled by the miniboxing plugin, where |X| is the arity and can range between 0 and 2 (Scala includes functions with arities up to 22, but arities above 2 are no longer specialized). Yet, this time the |MbFunctionX| objects would be introduced automatically.
 
-\subsubsection{Code transformation.} The miniboxing plugin automatically transforms |FunctionX| to |MbFunctionX|:
+\subsubsection*{Code transformation.} The miniboxing plugin automatically transforms |FunctionX| to |MbFunctionX|:
 
 \begin{itemize}
   \item All references to |FunctionX| are converted to |MbFunctionX|;
@@ -219,7 +219,7 @@ Explaining how the code transformation works is beyond the scope of this paper a
   \item When an |MbFunctionX| value is assigned to supertypes of |FunctionX|, it needs to be converted;
 \end{itemize}
 
-\subsubsection{Conversions} can occur in both directions, from |FunctionX| objects to |MbFunctionX| and back.
+\subsubsection*{Conversions} can occur in both directions, from |FunctionX| objects to |MbFunctionX| and back.
 
 Converting |FunctionX| objects to their miniboxed counterparts is done using switches that allow the newly created |MbFunctionX| to directly call the unboxed |apply|, fără boxing:
 

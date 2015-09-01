@@ -443,7 +443,7 @@ The \coerce{} phase is the centerpiece of the LDL mechanism and is similar for a
 
 The \coerce{} phase transforms the abstract syntax tree in two steps: (1) in the annotation checker, the different representations become incompatible, thus invalidating the current AST and (2) the \coerce{} phase type-checks the AST and introduces coercions where necessary. The coercions are introduced based on the representation mismatches revealed by the local type inference (\S\ref{subsec:coerce-local-type-inference}): when a certain representation is required but a different one is passed, a coercion is introduced (\S\ref{subsec:coerce-key-insights}). Since the names have been resolved and the tree has been type-checked before, type-checking the tree again will only be responsible for inserting coercions (given that the type checker is indeed idempotent). Finally, object-oriented features of the language need to be taken into account (\S\ref{subsec:coerce-object-oriented}).
 
-\subsubsection{Local Type Inference}
+\subsubsection*{Local Type Inference}
 \label{subsec:coerce-local-type-inference}
 
 Local type inference \cite{odersky-colored-local-type-inf, pierce-local-type-inference} is used to reduce the boilerplate in source code, by inferring certain type annotations instead of requiring the programmer to write them by hand.
@@ -469,7 +469,7 @@ It then type-checks the AST using bidirectional propagation. Along with propagat
 
 In the \coerce{} phase we only use the expected type propagation feature, as the input AST is already type-checked and all type annotations have already been inferred. The next part describes exactly how the expected type propagation drives the introduction of representation coercions.
 
-\subsubsection{Placing Coercions}
+\subsubsection*{Placing Coercions}
 \label{subsec:coerce-key-insights}
 
 Coercions are introduced when an AST node's representation doesn't match the one required by the outside node. In the compiler, name resolution is effectively the high-level equivalent of a forward data flow analysis \cite{escape-analysis-first-paper}, tracking the reaching definitions via symbols. Coupled with the type system, name resolution propagates the types of symbols in a program's syntax tree and, along with them, the representation information. On the other hand, the expected type propagation in local type inference acts as a backward data flow analysis tracking the expected representation of a node.
@@ -491,7 +491,7 @@ Propagating expected types delays the introducing the coercions until a node wit
 
 Implicit conversions in the Scala programming language could also be used to introduce coercions. Both implicit conversions and representation coercions adapt a node to the type expected by the outer expression. However, since implicit conversions can be influenced by the program code, we prefer to use a separate, albeit similar mechanism to introduce the coercions, in order to avoid any interactions. The fact that implicit conversions are resolved in the compiler frontend does help: by the time LDL-based transformations kick in, implicits have been resolved, so the transformation only needs to add representation coercions.
 
-\subsubsection{Object-Oriented Aspects}
+\subsubsection*{Object-Oriented Aspects}
 \label{subsec:coerce-object-oriented}
 
 During the transformation, which type-checks the AST again in a DFS approach, the \coerce{} phase needs to take care of the object-oriented aspects in the language. For example, method calls with unboxed receivers require either boxing or forwarding to an extension method \cite{scala-value-classes-sip}. Fortunately, super types do not require special handling: only types that can be unboxed are annotated, not their super types, so expressions that conform to super types are automatically boxed through annotation-driven coercions.
@@ -790,7 +790,7 @@ The \commit{} phase transforms our example to:
 
 It is worth mentioning that even with the necessity to cater for the lack of built-in struct support in the JVM, the resulting transformation is remarkably simple. First, we have been able to implement it without changing the compiler itself (in particular, without customizing the built-in \textsc{erasure} phase). Second, custom logic in \inject{}, \coerce{} and \commit{} phases spans only about 500 lines of code. This shows the LDL mechanism can significantly reduce the effort necessary to implement complex data representation transformations.
 
-\subsubsection{Evaluation}
+\subsubsection*{Evaluation}
 
 We evaluate the plugins on three metrics:
 \begin{itemize}
@@ -914,7 +914,7 @@ Finally, as this code passes through the Scala compiler's backend, the \textsc{e
 
 It is worth mentioning that miniboxing exploits all the flexibility available in the LDL mechanism: in the last version it features 2 alternative encodings (miniboxing to |Long| or |Double|), the alternative representation mapping is not injective, since all miniboxed type parameters map to either |Long| or |Double|, the selectivity is used to generate bridge methods for similar reasons to those presented in \S\ref{sec:problem-oo/selectivity} and the compatibility between annotated and non-annotated types in the \inject{} phase is used to easily redirect method calls from miniboxed methods to their specialized variants.
 
-\subsubsection{Evaluation}
+\subsubsection*{Evaluation}
 
 \textbf{Lines of code and complexity.} The miniboxing plugin has 17 Scala files with 2584 lines of code. The specialization transformation currently available in the Scala compiler \cite{iuli-thesis} has 2 Scala files with 1541 lines of code. However, we are not comparing similar things: the miniboxing plugin performs a more complex transformation compared to specialization and bears the boilerplate necessary to build a compiler plugin.
 
@@ -1007,7 +1007,7 @@ The \coerce{} phase is also responsible for redirecting method calls for |@stage
 
 The staging prototype serves to show that lifting language constructs can be modelled as an LDL-based representation transformation.
 
-\subsubsection{Evaluation}
+\subsubsection*{Evaluation}
 
 \textbf{Lines of code and complexity.} The staging plugin consists of 12 Scala files with 487 lines of code. The difference between the standard Scala compiler and Scala-virtualized is +2247/-578 LOC, including the library changes necessary to support lifting language constructs. Although the staging plugin is still far from being on-par with scala-virtualized in terms of lifting capabilities, it is 4 times smaller, despite the boilerplate necessary to create a Scala compiler plugin.
 

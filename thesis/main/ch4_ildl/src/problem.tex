@@ -73,7 +73,7 @@ In order to reap the benefits of using the improved representation without manua
 
 The |gcdADRT| method has exactly the same code as |gcd|, but wrapped in the |adrt| scope. Therefore, during compilation, the method is transformed to use the long integer representation. Two elements trigger the transformation: the  description object and the transformation scope.
 
-\subsubsection{The transformation description object} is responsible for defining the transformation that will be applied to the code. In our example, |IntPairComplexToLongComplex| designates a transformation from the \emph{high-level type}, in this case |(Int, Int)| to the \emph{representation type}, in this case |Long|:
+\subsubsection*{The transformation description object} is responsible for defining the transformation that will be applied to the code. In our example, |IntPairComplexToLongComplex| designates a transformation from the \emph{high-level type}, in this case |(Int, Int)| to the \emph{representation type}, in this case |Long|:
 
 \begin{lstlisting-nobreak}
 object IntPairComplexToLongComplex
@@ -115,7 +115,7 @@ Furthermore, there are many aspects that can be optimized: eliminating pointer d
 
 
 
-\subsubsection{The transformation scope} is delimited by the |adrt| marker method, which behaves much like a keyword. Values, methods and classes defined in the scope are also visible outside, since the inlining occurs early in the compilation pipeline:
+\subsubsection*{The transformation scope} is delimited by the |adrt| marker method, which behaves much like a keyword. Values, methods and classes defined in the scope are also visible outside, since the inlining occurs early in the compilation pipeline:
 
 \begin{lstlisting-nobreak}
 scala> `adrt(IntPairComplexToLongComplex)` {

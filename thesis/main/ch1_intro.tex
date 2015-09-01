@@ -1,28 +1,50 @@
 \chapter{Introduction}
-% \addcontentsline{toc}{chapter}{Introduction}
 
-A computer's processor is an amazing device: it executes millions of operations each second, at a speed difficult to grasp for any human. Still, these operations are simple, precise instructions: read 32 bits from memory address X into register R1, extend the number in R1 to a 64 bit unsigned integer in register R2 and so on. For the processor, data is made up of bits and each operation needs to know the exact size and semantics of the data, since this selects which set of bitwise operations will be executed.
+A computer's processor is an amazing device: it executes millions of operations each second, at a speed difficult to grasp for any human. Still, these operations are performed on simple and precise data types: read 32 bits from memory address X into register R1, extend the number in R1 to a 64 bit unsigned integer and so on. For the processor, data is made up of bits and each operation needs to know the exact size and semantics of the data, since this selects which set of bitwise operations will be executed.
 
-On the completely opposite side of the spectrum, people think in terms of very high-level goals, such as the desire to find the average temperature over a day or a week. Programming languages and compilers bridge the gap between the complex and abstract high-level goals and the precise low-level machine code necessary to fulfill them: Programming languages allow people to express their intent while compilers translate this intent, written in the source code, to low-level machine code.
+On the completely opposite side of the spectrum, people think in terms of very high-level goals, such as the desire to find the 10th or 100th Fibonacci number. Programming languages and compilers bridge the gap between the complex and abstract high-level goals and the precise low-level machine instructions necessary to fulfill them: Programming languages allow people to express their intent while compilers translate this intent, written in the source code, to precise low-level machine instructions.
 
-Programming lanugages have long struggled with a dilemma: exposing low-level data types and low level operations allows very good control and easy translation, but reduces the programmer productivity. Indeed, programming languages such as Assmbly and C allow very precise control over all aspects of the computation and the interaction between the processor and the other devices in the computer, such as the network interface card. Yet this forces the programmer to make many decisions that are not directly related to the problem: how to store data, how each operation will manipulate it and what needs to be done at each step. As customizable as this makes the program, exposing so many extaneous decisions makes development tedious and error-prone.
+Programming lanugages have long struggled with a dilemma: exposing low-level data types and their operations allows precise control over the machine and a very direct translation to machine code, but also reduces the programmer productivity. Indeed, programming languages such as Assmbly and C allow very precise control over all aspects of the computation and the interaction between the processor and the other devices in the computer. Yet this forces the programmer to make many decisions that are not directly related to the problem: how to store data, how each operation manipulates it and what needs to be done at each step. Despite the very thight control over the execution, exposing all the possibilities and asking the programmer to make so many decisions can slow down  development and make it more error-prone.
 
-The other alternative is exposing very high-level data structures and operations in the programming language. Indeed, languages such as Scala, Python, Ruby, JavaScript gloss over many implementation details to offer the programmers a high-level environment that boosts productivity. For example, Python automatically takes care of extending the bit count when a number overflows. The Scala standard library offers data structures such as arrays, vectors, lists that are parametric in the type of their element: they can be statically guaranteed to only store a single type of values, be that integers, floating-point numbers, database records or objects representing other nested data structures. But this flexibility comes at the price of efficiency: the high-level code is compiled to long sequences of machine instructions, where most of the data is passed as pointers to memory-allocated objects and where operations are executed through indirect calls. Despite the processor execution speed, these operations can incur orders of magnitude of slowdowns.
+The other alternative is exposing high-level data types and operations in the programming language. For example, languages such as Scala, Python, Ruby and JavaScript gloss over many implementation details to offer a high-level environment that boosts the programmer productivity. For example, Python automatically adjusts the bit width of integer numbers so operations never overflow, thus completely eliminating the choice of size and protecting the programmer from the risk of overflows. Similarly, the Scala standard library offers data structures such as arrays, vectors, lists that can hold any kind of values, be it integers, floating-point numbers, database records or objects representing other nested data structures. In doing so, the language relieves the programmer from the burden of deciding how many bits to store in each cell or what to do about nested variably-sized data structures. But such flexibility comes at the price of efficiency: these flexible high-level constructs are compiled to long sequences of machine instructions, where most of the data is passed as references to memory-allocated objects and where operations are executed through indirect calls. So these operations can incur orders of magnitude of slowdowns compared to their low-level equivalents.
 
-Instead of compiling the high-level constructs into long and indirect low-level code and using that, a solution that can be employed is to replace them by more efficient ones, that contain more efficient low-level code. In this context, constructs can mean primitive data types, data structures and entire object hierachies, all of which can be replaced by specialized versions, semantically equivalents that are more efficiently implemented.
+Much of the flexibility provided at the language level remains unused in real programs. For example, in practice, it is rather uncommon for a program to store both integers and floating-point numbers in the same list. But, since the language allows it, the low-level code for the list must be able to handle any mix of values, which makes it complex and inefficient. Yet, there is a category of programming languages where the compiler knows the type of all elements in a list: statically typed programming languages. In these languages, the static type information can gurarantee that a list will only store 32-bit integers throughout its lifetime. From there, a natural question to ask is whether we can devise a more efficient version of the list for 32-bit integers and automatically use that in the program? Or, given a program written with variable-width integers, but which in practice only uses 16-bit integers, can the compiler automatically use a more efficient data representation and thus improve the execution performance?
 
-This is where this thesis makes its contribution: it proposes a general mechanism that allows compilers for object-oriented languages to optimally and safely replace the high-level constructs in their compliled programs. The key feature of this mechanism is its predictable nature, compared to the common compiler optimizations that are usually opportunistic and may or may not kick in based on their heuristics. Furthermore, we have shown that the mechanism is general enough to accommodate a wide range of transformations: from improving generics, avoiding heap allocation and all the way to allowing programmers to fine-tune their data structures after the fact.
+This is where this thesis makes its contribution: it describes a general mechanism that allows compilers to use the static type information in a program to optimally and safely replace its data by a more efficient equivalent. In this case, data can mean anything from primitive types, such as the 32-bit integer to complex data structures, such as a vector of sensor readings. All the examples we mentioned so far were automated using our mechanism and are thoroughly described in the thesis, complete with the evaluation details. Transforming the data representation for these examples yields speedups of up to 5x, but the thesis describes other examples where the improvements go above 20x.
 
-
+The two key features of this mechanism, which we call Late Data Layout, are: (1) its first-class suport for object-oriented patterns, such as dynamic dispatch, overriding and inheritance and (2) its coherent and predictable nature, compared to the most common compiler optimizations, which may or may not kick in based on predefined heuristics. Furthermore, the program transformations we have developed using this mechanism show it is general enough to accommodate many different optimizations: from improving generics, avoiding heap allocation and all the way to allowing programmers to fine-tune their data structures after the fact. The next section tells the story of the Late Data Layout mechanism was developed.
 
 %% Story of development:
 %  1. miniboxing
 %  2. LDL
 %  3. iLDL
-\paragraph*{Generics Specialization.} The first chapter ...
+\subsection{The Late Data Layout Mechanism}
+
+The Late Data Layout mechanism was developed as a response for the need to transform the data representation used in programs written in the Scala programming language. In particular, it was required to complete the
+
+It was a result of a complex program transformation that arose when trying to improve the performance of generics written in Scala and executed on the Java Virtual Machine. We present the explain the timeline of the development, showing the motivation and the applications.
+
+\paragraph*{Miniboxing Specialization.}
+
+% Generics in the Scala programming language => erasue => boxing
+
+% Specialization in Scala => too much bytecode
+
+% Miniboxing => encode everything as a primitive
+
+% But then T, the type parameter, can be represented as long integers in the ... => LDL
+
+\paragraph*{Late Data Layout.}
+
+% Inspired by the Scala erasure transformation itself, which unboxes scala.Int into the 32-bit ...
+
+% Uses the type annotations injected by the earlier phases to drive the introduction of coercions. In the case of integer unboxing, the annotations drive the transformation from scala.Int (which is a synonim of java.lang.Integer) to 32-bit integers.
 
 
-\cite{st-amour-opt-coaching}
+
+\paragraph*{Data-centric Metaprogramming.}
+
+% potential
 
 \section{Context and Goals}
 
