@@ -21,13 +21,13 @@ def foo: (Int, Int) = {
 Immediately after the source is parsed, the \postparser{} phase transforms the |adrt| scopes in three steps:
 
 \vspace{0.3em}
-\begin{compactitem}
+\begin{itemize}
 \item it attaches a unique id to each |adrt| scope;
 \item it records and clears the block enclosed by the |adrt| scope
 \item it inlines the recorded code immediately after the now-empty
 |adrt| scope and, in the process, it marks the value and method definitions
 by the |adrt| scope's unique id (or by multiple ids, if |adrt| scopes are nested).
-\end{compactitem}
+\end{itemize}
 \vspace{0.3em}
 
 \noindent Following the \postparser{} phase, the code is:
@@ -43,10 +43,10 @@ def foo: (Int, Int) = {
 This code is ready for type-checking: the definition of |n| is located in the same block as its use, making the scope correct. During the type-checking process, the |IntPairToLong| object is resolved to a symbol, missing type annotations are inferred and implicit conversions are introduced explicitly in the tree. After type-checking and pattern matching expansion, the \inject{} phase traverses the tree and:
 
 \vspace{0.3em}
-\begin{compactitem}
+\begin{itemize}
 \item for every |adrt| scope it records the id and description object, before removing it from the abstract syntax tree;
 \item for value and method definitions, if the type matches one or more transformations, it adds the |@repr| annotation.
-\end{compactitem}
+\end{itemize}
 \vspace{0.3em}
 
 \noindent Following the \inject{} phase, the code for our example is:
@@ -84,18 +84,18 @@ Another advantage we get for free, thanks to referencing the transformation desc
 
 
 \vspace{-0.5em}
-\paragraph{Compiler Entry Points.}
+\paragraph*{Compiler Entry Points.}
 
 In many of the descriptions so far we have implicitly assumed the Scala compiler features. To ease other compiler developers in porting this approach, we highlight the exact Scala compiler features that we use:
 
 \vspace{0.3em}
-\begin{compactitem}
+\begin{itemize}
   \item The type checker is available at all times during compilation;
   \item We can change/see a symbol's signature at any phase;
   \item The compiler supports type annotations and external annotation checkers;
   \item The compiler support AST attachments;
   \item The compiler offers expected type propagation during type checking (In Scala, this is part of the local type inference.)
-\end{compactitem}
+\end{itemize}
 \vspace{0.3em}
 
 This concludes the section, which explained how we solved the main technical problems in the ADR Transformation and how this impacted the compilation pipeline. We now continue with our experimental evaluation.

@@ -27,20 +27,20 @@ We ran the benchmarks on an Intel |i7-4702HQ| quad-core processor machine with t
 \subsection{ADRT Micro-Benchmarks}
 
 Our benchmarking platform, ScalaMeter, executes micro-benchmarks using the following recipe:
-\begin{compactitem}
+\begin{itemize}
   \item First, fork a new JVM;
   \item Execute the benchmark several times to warm up the JVM, only measuring the noise;
   \item When the noise drops below a threshold, execute the benchmark and gather measurements;
-\end{compactitem}
+\end{itemize}
 
 \vspace{0.5em}
 \noindent
 For each benchmark run, we monitor:
-\begin{compactitem}
+\begin{itemize}
   \item The benchmark running time;
   \item GC cycles occurring during the run (in-benchmark);
   \item GC cycles occurring after the run (inter-benchmark);
-\end{compactitem}
+\end{itemize}
 
 \vspace{0.5em}
 \noindent
@@ -48,25 +48,25 @@ At the end of a cycle, we manually trigger a full GC cycle so the current run do
 
 This allows us to record the following parameters for each benchmark:
 
-\begin{compactitem}
+\begin{itemize}
   \item Benchmark running time (ms)
   \item In-benchmark garbage collected (MB)
   \item In-benchmark GC pause time (ms)
   \item Inter-benchmark garbage collected (MB)
   \item Inter-benchmark GC pause time (ms)
-\end{compactitem}
+\end{itemize}
 
 \vspace{0.5em}
 \noindent
 Since the ADR transformation is directly related to memory layout and, thus, to memory consumption, we paid special attention to GC cycles. Please notice that the benchmark running time includes the in-benchmark GC pause but not the inter-benchmark GC pause. This allows us to separately measure the speedups gained by avoiding GC cycles and from other factors, such as:
 
-\begin{compactitem}
+\begin{itemize}
   \item Avoiding pointer dereferencing;
   \item Improving cache locality;
   \item Simplifying operations;
   \item Specializing operations;
   \item Lazyfying operations.
-\end{compactitem}
+\end{itemize}
 
 \vspace{0.5em}
 \noindent
@@ -76,12 +76,12 @@ For each benchmark, we broke down the transformation in several steps, which all
 \noindent
 We chose representative micro-benchmarks in order to cover a wide range of transformations using the |adrt| scope:
 
-\begin{compactitem}
+\begin{itemize}
 \item the greatest common divisor algorithm, presented in \S\ref{sec:problem};
 \item least squares benchmark + deforestation \cite{wadler-deforestation};
 \item averaging sensor readings + array of struct;
 \item computing the first 10000 Hamming numbers.
-\end{compactitem}
+\end{itemize}
 
 \vspace{0.5em}
 \noindent
@@ -228,10 +228,10 @@ object AoSToSoA extends TransformationDescription {
 
 In the benchmark, we have an array of 5 million events, each with its own timestamp, type and reading. We are seeking to average the readings of a single type of event occurring in the event array. Since our transformation influences cache locality, we had two different speedups depending on the event distribution:
 
-\begin{compactitem}
+\begin{itemize}
  \item Randomly occurring events are triggered with a probability of 1/3 in the sensor reading array;
  \item Uniformly occurring events appear every 3rd element, thus offering more room for CPU speculation.
-\end{compactitem}
+\end{itemize}
 
 Using the |adrt| scope to transform the array of tuples into a tuple of arrays allows better cache locality and fewer pointer dereferences. With random events, the ``adrt'' transformation produces a speedup of 1.8x. With uniformly distributed events, both the original and the transformed code run faster, yet resulting in a speedup of 5.7x.
 

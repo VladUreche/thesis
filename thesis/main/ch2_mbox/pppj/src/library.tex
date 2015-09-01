@@ -126,10 +126,10 @@ Once the tuple is cast to a |Tuple1[Int]|, the specialization transformation kic
 
 \subsubsection{Introducing accessors and constructors} is done by the miniboxing plugin when encountering a tuple access followed by a conversion to the miniboxed representation or when the tuple constructor is invoked with all the arguments being transformed from the miniboxed representation to the boxed one. There are two reasons this step needs to be automated:
 
-\begin{compactitem}
+\begin{itemize}
  \item By default, programmers do not have access to the type bytes directly, as this would allow them to introduce unsoundness in the type system (they can inspect their representation using miniboxing reflection, but this is outside the scope);
  \item One of the reasons tuples are useful is their great integration with the language, allowing a very concise syntax. Asking programmers to use anything other than this syntax would be as bad as developing our own, no-syntax-sugar miniboxed tuple.
-\end{compactitem}
+\end{itemize}
 
 With these three changes, benchmarks show a 2x speedup when accessing tuples and a 5\% slowdown compared to the equivalent code which accesses the tuples directly. The benchmark we used was a tuple quicksort algorithm (\S\ref{sec:bench}). \textcolor{white}{Pretty neat, huh?}
 
@@ -175,10 +175,10 @@ Our initial approach used accessors, but we soon learned that switching on as ma
 
 \subsubsection{Code transformation.} The miniboxing plugin automatically transforms |FunctionX| to |MbFunctionX|:
 
-\begin{compactitem}
+\begin{itemize}
   \item All references to |FunctionX| are converted to |MbFunctionX|;
   \item Function definitions create |MbFunctionX| instead of |FunctionX|;
-\end{compactitem}
+\end{itemize}
 
 For example, the code:
 
@@ -212,12 +212,12 @@ Is transformed into:
 \end{lstlisting-nobreak}
 
 Explaining how the code transformation works is beyond the scope of this paper and has been thoroughly studied in previous literature \cite{ldl,ildl-tech}. The result is that, within miniboxed code, only the |MbFunctionX| representation is used. |FunctionX| is only referenced in a limited number of cases:
-\begin{compactitem}
+\begin{itemize}
   \item When miniboxed code needs to pass a function to pre-miniboxing code (which uses the |FunctionX| representation);
   \item When miniboxed code receives a function from pre-miniboxing code (using the |FunctionX| representation);
   \item When a miniboxed class or method extends a pre-miniboxed entity that takes |FunctionX| arguments;
   \item When an |MbFunctionX| value is assigned to supertypes of |FunctionX|, it needs to be converted;
-\end{compactitem}
+\end{itemize}
 
 \subsubsection{Conversions} can occur in both directions, from |FunctionX| objects to |MbFunctionX| and back.
 

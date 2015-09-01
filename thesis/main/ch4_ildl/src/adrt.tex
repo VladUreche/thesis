@@ -72,12 +72,12 @@ The key to handling all concurrent scopes correctly is shifting focus from the s
 We look at four instances of composability:
 
 \vspace{0.3em}
-\begin{compactitem}
+\begin{itemize}
   \item allowing different scopes to communicate, despite using different representation types (high-level types coincide);
   \item isolating high-level types, barring unsound value leaks through the representation type;
   \item handling nested transformation description objects;
   \item passing values between high-level types in the encoded (representation) format;
-\end{compactitem}
+\end{itemize}
 \vspace{0.3em}
 
 Although the four examples cover the most interesting corner cases of the transformation, the interested reader may consult the ``Scope Nesting'' page on the project wiki \cite{ildl-plugin-wiki}, which describes all cases of scope overlapping, collaboration and nesting. Furthermore, scope composition is tested with each commit, as part of the project's test suite.
@@ -342,11 +342,11 @@ This allows the call to the |*| operator to be transformed into a bypass call, a
 \vspace{-0.4em}
 \subsubsection{Bypass methods.} Both normal and implicit bypass methods defined in the transformation description object need to correspond to the original method they are replacing and:
 
-\begin{compactitem}
+\begin{itemize}
 \item Add a first parameter corresponding to the receiver;
 \item Have the rest of the parameters match the origin method;
 \item Freely choose parameters to be encoded or decoded.
-\end{compactitem}
+\end{itemize}
 
 Therefore, during the \coerce{} phase, which introduces bypass method calls, the |implicit_*| has the signature:
 
@@ -504,11 +504,11 @@ def use3(list: `List[Long]`): Unit = use1(`toHigh`(list))
 To summarize, |adrt| scopes are capable of targeting:
 
 \vspace{0.3em}
-\begin{compactitem}
+\begin{itemize}
 \item generic types, such as |List[T]| for any |T|;
 \item instantiated generic types, such as |List[(Int, Int)]|;
 \item monomorphic types, such as |(Int,Int)|, outside generics
-\end{compactitem}
+\end{itemize}
 \vspace{0.3em}
 
 \noindent

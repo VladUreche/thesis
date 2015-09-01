@@ -45,10 +45,10 @@ The result is (10, 3).
 This rather large speedup, of 13x, is the effect of using the long integer representation for Gaussian Integers, which:
 
 \vspace{0.25em}
-\begin{compactitem}
+\begin{itemize}
   \item[(1)] Provides a direct representation, which does not require any pointer dereferencing;
   \item[(2)] Allocates Gaussian integers on the stack, since the |Long| primitive type is unboxed by the compiler backend, thus avoiding object allocation and garbage collector pauses.
-\end{compactitem}
+\end{itemize}
 \vspace{0.25em}
 
 The Benchmarks section (\S\ref{sec:benchmarks}) shows the contribution of each element to the speedup. This example (and many others in the Benchmarks section) show that optimizing the data representation is worthwhile. However, transforming the code by hand is both tedious and error-prone. %, so an automated transformation would be preferable.
@@ -90,23 +90,23 @@ object IntPairComplexToLongComplex
 Transformation description objects are described in more detail in \S\ref{sec:ildl}, but we can already preview their components:
 
 \vspace{0.35em}
-\begin{compactitem}
+\begin{itemize}
   \item The |toRepr| and |toHigh| methods serve a double purpose:
-  \begin{compactitem}
+  \begin{itemize}
     \item At the type level, they define the high-level type, in this case |(Int, Int)|, which serves as the target of the transformation, and the representation type, in this case |Long|, which will be used as the optimized value representation;
     \item At the term level, they allow converting values between the two representations;
-  \end{compactitem}
+  \end{itemize}
   \item The ``bypass methods'' part of the definition allows operations such as |*|, |%| and |norm| to run directly on values \emph{encoded} in the representation type (in this case |Long|), instead of \emph{decoding} them back to the high-level type in order to execute the dynamic dispatch. We explain how bypass methods are defined and used later on, in \S\ref{sec:ildl:method}.
-\end{compactitem}
+\end{itemize}
 \vspace{0.35em}
 
 Description objects split the task of optimizing the data representation into:
 
 \vspace{0.35em}
-\begin{compactitem}
+\begin{itemize}
 \item[(1)] Devising an improved data representation: Defining the improved data representation is done once and uses domain-specific knowledge about the program. Therefore, we let the developer decide how data should be encoded and how operations should be handled. This information is stored in the description object.
 \item[(2)] Transforming the source code to use the improved representation, based on the description object: This is repetitive, tedious and error-prone work, which we completely automate away.
-\end{compactitem}
+\end{itemize}
 \vspace{0.35em}
 
 A natural question to ask is why not automate the process of finding a better data representation? Any change in the data representation speeds up certain patterns at the expense of slowing down others. For example, unboxing primitive types speeds up monomorphic code, which handles primitives directly. Yet, erased generics still require values to be boxed, so any interaction with them triggers boxing operations, which slow down execution.
@@ -132,10 +132,10 @@ scala> timed(() => gcdADRT((544, 185), (131, 181)))
 Scoped transformations bring two advantages:
 
 \vspace{0.25em}
-\begin{compactitem}
+\begin{itemize}
  \item Different parts of a program can use different transformations, using the best data representation for the task;
  \item Transformations are clearly marked in the source code.
-\end{compactitem}
+\end{itemize}
 \vspace{0.25em}
 
 The fact that different transformations can be applied to different components gives the ADR transformation its scoped nature, and sets it apart from classical optimizations such as unboxing primitive types, generic specialization and value class inlining, which occur globally. However, this scoped nature makes the transformation more complex, as the next paragraphs will show.

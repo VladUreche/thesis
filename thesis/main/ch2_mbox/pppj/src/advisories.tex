@@ -4,10 +4,10 @@
 
 The previous section has shown that, when used globally, miniboxed generics provide two key invariants that ensure primitive values are always passed using the miniboxed (long integer) encoding:
 
-\begin{compactitem}
+\begin{itemize}
 \item Instantiations of miniboxed classes use the most specific variant (e.g. a value of type |Node[Int]| has runtime class |Node_M|);
 \item Methods called on a miniboxed class use the most specific specialization available (e.g. a runtime class |Node_M| always receives calls to the miniboxed |head_M| accessor)
-\end{compactitem}
+\end{itemize}
 
 The presence of erasure and wildcard-type abstractions (such as |Node[_]|) leads to violations of these two invariants: the reference variant of a miniboxed class may be instantiated in place of a miniboxed variant or the method called may not be the most specific one available. In both cases, the compilation scheme is resilient, producing correct results, at the expense of performance regressions, caused by boxing primitive types.
 
@@ -58,10 +58,10 @@ The bytecode produced is:
 
 Two problems occur here:
 
-\begin{compactitem}
+\begin{itemize}
  \item When method |foo_M| is called, it does not have a miniboxed version of |bar| to call further on, so it calls the erased one;
  \item When method |bar| is called, although |baz| has a miniboxed version, it cannot be called as the type information was erased.
-\end{compactitem}
+\end{itemize}
 
 These two problems correspond to the main two performance advisories: forward and backward warnings. A third one, related to data representation ambiguity, will be shown below.
 
@@ -99,12 +99,12 @@ With these actionable warnings, even a novice programmer, not familiar to the mi
 
 The reason we chose to present the ``forward'', ``backward'' and ``ambiguity'' advisories is because, although they are only three of the ten cases, they are the warnings a typical programmer is most likely to encounter. They appear in all cases where a specialized variant of either a method or class needs to be chosen:
 
-\begin{compactitem}
+\begin{itemize}
  \item Calling a miniboxed method;
  \item Instantiating a miniboxed class;
  \item Calling the method of a miniboxed class;
  \item Extending a miniboxed class or trait;
-\end{compactitem}
+\end{itemize}
 
 The one element common to all these cases is the need to pick the best matching miniboxed variant for the given type arguments. For example, given the method |foo| defined previously, for a call to |foo[Int](4)|, the compiler needs to find the best variant of |foo| and redirect the code to it. In this case, since the type argument of method |foo| is |Int|, which is a primitive type, and since the type parameter |T| in the definition of |foo| is marked as miniboxed, it will pick the |foo_M| variant, which uses the miniboxed representation. This operation is called unification, and we have unified the type parameter of |foo|, namely |T|, and a type argument, |Int|. The unification algorithm is also responsible for issuing advisories.
 
@@ -124,12 +124,12 @@ class D[L] extends C[L, Int]
 \end{lstlisting-nobreak}
 
 When deciding which specialized variant of the miniboxed class |C| to use as class |D|'s parent, we have:
-\begin{compactitem}
+\begin{itemize}
  \item the original class |O| = |C|;
  \item the type parameters |F1| = |M| and |F2| = |N|;
  \item the set of variants |VO| = \{|C_M|, |C_L|\};
  \item the inverse mapping |VS| = \{|M|: miniboxed and |N|: erased $\rightarrow$ |C_M|, |M|: reference and |N|: erased $\rightarrow$ |C_L|\}
-\end{compactitem}
+\end{itemize}
 
 Now, applying the unification algorithm in Figure \ref{fig:algorithm} for the type parameter |F1| = |M| coupled with the type argument |T1| = |L|, it issues a forward warning followed by outputting (|M|: reference). Then, applying it to |F2| = |N| and |T2| = |Int|, it issues a backward warning and outputs (|N|: erased). From the two bindings, we obtain the specialized variant |C_L| to be a parent of |D|. Indeed, this is what happens in practice:
 

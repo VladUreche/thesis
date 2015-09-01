@@ -225,11 +225,11 @@ The Scala compiler desugars the class to (some aspects omitted):
 \end{lstlisting-nobreak}
 
 There are three subtleties in the |Node| translation:
-\begin{compactitem}
+\begin{itemize}
   \item First, there should be two versions of the class: one where |_head| is miniboxed, called |Node_M| and another one where |_head| is an |Object|, called |Node_L|;
   \item Then, types like |Node[_]|, which corresponds to Java's wildcard |Node<any>| can be instantiated by both classes, so the two need to share a common interface, the ``erased view'';
   \item Finally, this shared interface has to contain the specialized accessors corresponding to both classes (so both classes should implement all the methods).
-\end{compactitem}
+\end{itemize}
 
 Given these constraints, miniboxing compiles |Node| to an interface:
 
@@ -325,10 +325,10 @@ At this point, you may be wondering why the |getFirst| bytecode receives a param
 \vspace{-0.2em}
 
 So far, we have seen the following two invariants:
-\begin{compactitem}
+\begin{itemize}
  \item we call the |head_M| accessor on receivers of type |Node[T]| where |T| is either miniboxed or is a primitive type, optimistically assuming the receiver is an instance of class |Node_M|;
  \item otherwise, we call the |head| accessor, assuming the receiver is an instance of class |Node_L|.
-\end{compactitem}
+\end{itemize}
 
 Unfortunately, interoperating with erased generics violates both invariants. Consider the following method:
 
