@@ -23,7 +23,7 @@ The low-level code shows the two representations of the high-level |Int| concept
 
 This strategy of exposing a unified high-level concept with multiple representations is used in other language features as well:
 
-\textbf{Value classes} \cite{gosling-value-classes, dot-net-value-types-www, scala-value-classes-sip} behave as classes in the object-oriented hierarchy, but are optimized to efficient C-like structures \cite{cxx-stroustrup} where possible. This exposes two representations of the value class concept: an inline, efficient struct representation and a flexible object-oriented representation that supports subtyping and virtual method calls.
+\textbf{Value classes} \cite{gosling-value-classes, dot-net-value-types-www, sip-value-classes} behave as classes in the object-oriented hierarchy, but are optimized to efficient C-like structures \cite{cxx-stroustrup} where possible. This exposes two representations of the value class concept: an inline, efficient struct representation and a flexible object-oriented representation that supports subtyping and virtual method calls.
 
 \textbf{Specialization} \cite{specialization-iuli, iuli-thesis, goetz-specialization} is an optimized translation for generics, which compiles methods and classes to multiple variants, each adapted for a primitive type. An improvement to specialization is using the miniboxed representation \cite{miniboxing, miniboxing-www}, which creates a single variant for all primitive types, called a minibox. In this transformation, a generic type |T| can be either boxed or miniboxed, in yet another instance of a concept with multiple representations.
 
@@ -296,7 +296,7 @@ Virtual method calls also pose challenges for data representation transformation
  println(a.toString) // needs special treatment
 \end{lstlisting-nobreak}
 
-There are two approaches to handling virtual calls: (1) the unboxed receiver can be boxed so the virtual call can be executed, or (2) if the corresponding method is final, its implementation can be extracted into a static method, rendering the call static instead of dynamic. Both of these techniques have been used in practice, although the second is markedly better for performance: in the method extraction process, the receiver becomes an explicit parameter and can be unboxed. In Scala, methods extracted from value classes are called extension methods \cite{scala-value-classes-sip}:
+There are two approaches to handling virtual calls: (1) the unboxed receiver can be boxed so the virtual call can be executed, or (2) if the corresponding method is final, its implementation can be extracted into a static method, rendering the call static instead of dynamic. Both of these techniques have been used in practice, although the second is markedly better for performance: in the method extraction process, the receiver becomes an explicit parameter and can be unboxed. In Scala, methods extracted from value classes are called extension methods \cite{sip-value-classes}:
 
 \begin{lstlisting-nobreak}
  def extension_toString(i: `int`): String = ...
@@ -494,7 +494,7 @@ Implicit conversions in the Scala programming language could also be used to int
 \subsubsection*{Object-Oriented Aspects}
 \label{subsec:coerce-object-oriented}
 
-During the transformation, which type-checks the AST again in a DFS approach, the \coerce{} phase needs to take care of the object-oriented aspects in the language. For example, method calls with unboxed receivers require either boxing or forwarding to an extension method \cite{scala-value-classes-sip}. Fortunately, super types do not require special handling: only types that can be unboxed are annotated, not their super types, so expressions that conform to super types are automatically boxed through annotation-driven coercions.
+During the transformation, which type-checks the AST again in a DFS approach, the \coerce{} phase needs to take care of the object-oriented aspects in the language. For example, method calls with unboxed receivers require either boxing or forwarding to an extension method \cite{sip-value-classes}. Fortunately, super types do not require special handling: only types that can be unboxed are annotated, not their super types, so expressions that conform to super types are automatically boxed through annotation-driven coercions.
 
 Forwarding to an extension method or intrinsic deserves a more detailed explanation. In the factorial example we use the |*| operator, which requires boxing the receiver and the argument and returns a boxed result. Instead of the |*| operation, the \coerce{} phase will use |_*_|, the platform-provided intrinsic multiplication for unboxed integers. To do so, while descending in the AST to type-check each node, the \coerce{} phase intercepts method calls where the receiver is unboxed. One such method is |n.*(...)|, where |n| has type |@unboxed Int|. Since the |*| operation does have an intrinsic equivalent, |_*_|, it is replaced in the tree. Following the replacement, the \coerce{} transformer descends and type-checks the argument with the new expected type, which requires it to be unboxed. Once the argument has been type-checked, the \coerce{} transformer returns to the intrinsic method call, and, given the expected type for the result, decides whether a coercion is necessary or not. The result is:
 
@@ -529,9 +529,9 @@ The \commit{} phase is heavily dependent on the transformation at hand when upda
 This section presents the properties of the Late Data Layout mechanism. Although a partial formal description of the transformation is available \cite{ldl-form}, this section only provides an intuitive reasoning about the properties of the mechanism:
 
 \begin{itemize}
-\item consistency in terms of value representation;
-\item selectivity in terms of value representation;
-\item optimality in terms of runtime coercions;
+\item Consistency in terms of value representation;
+\item Selectivity in terms of value representation;
+\item Optimality in terms of runtime coercions;
 \end{itemize}
 
 To the best of our knowledge, we are the first to describe a general-purpose mechanism that has the last two properties: selectivity and optimality.
@@ -591,7 +591,7 @@ This section describes how we validated the Late Data Layout mechanism by using 
 
 In our case studies we observed increased productivity thanks to the reuse of the Late Data Layout mechanism. Two decisions in LDL also provided tangible benefits to the development process: (1) decoupling the decision to unbox values from the mechanism that introduces coercions and (2) decoupling the alternative representation semantics from the coercions and annotated types.
 
-A highlight of the validation is the fact that we reimplemented and extended the Scala compiler support for value classes \cite{scala-value-classes-sip} with just two developer-weeks of work and without reusing any pre-existing code.
+A highlight of the validation is the fact that we reimplemented and extended the Scala compiler support for value classes \cite{sip-value-classes} with just two developer-weeks of work and without reusing any pre-existing code.
 
 We begin by describing the plugin architecture in the Scala compiler and how it can be used to implement data representation transformations. Afterwards, we present and evaluate each of the three case studies.
 
@@ -663,7 +663,7 @@ Finally \textbf{the \commit{} phase} transforms the symbol signatures and the tr
 \subsection{Case Study 1: Value Classes}
 \label{sec:validation/value-classes}
 
-Value classes \cite{gosling-value-classes, dot-net-value-types-www, scala-value-classes-sip} marry the homogeneity and dynamic dispatch of classes with the memory efficiency and speed of C-like structures. In order to get the best of both worlds, value classes have two different in-memory representations. Instances of value classes (referred to as value objects) can be represented as fully-fledged heap objects (the boxed representation) or, when possible, use a struct-like unboxed representation with by-value semantics.
+Value classes \cite{gosling-value-classes, dot-net-value-types-www, sip-value-classes} marry the homogeneity and dynamic dispatch of classes with the memory efficiency and speed of C-like structures. In order to get the best of both worlds, value classes have two different in-memory representations. Instances of value classes (referred to as value objects) can be represented as fully-fledged heap objects (the boxed representation) or, when possible, use a struct-like unboxed representation with by-value semantics.
 
 For instance, in the example below, the |Meter| value class is used to model distances in a flexible and performant manner, providing both object-orientation (including virtual methods and subtyping) and efficiency of representation. Our implementation transforms methods |+|, |<=| and |report| such that their arguments and return types are unboxed value classes. Furthermore, values of type |Meter| will use the unboxed representation wherever possible.
 
@@ -678,7 +678,7 @@ For instance, in the example below, the |Meter| value class is used to model dis
  }
 \end{lstlisting-nobreak}
 
-Before we dive into the transformation, let us consider some basic facts about value classes, correlating them with existing implementations for C\# \cite{dot-net-value-types-www} and Scala (both the official transformation shipped with Scala 2.10 \cite{scala-value-classes-sip}, and the prototype we present in this paper).
+Before we dive into the transformation, let us consider some basic facts about value classes, correlating them with existing implementations for C\# \cite{dot-net-value-types-www} and Scala (both the official transformation shipped with Scala 2.10 \cite{sip-value-classes}, and the prototype we present in this paper).
 
 \textbf{Final semantics}. Even though value classes can extend traits, their participation in the class hierarchy has to be limited in order to allow correct boxing and unboxing. Indeed, if along with |Meter| it were possible to define another value class |Kilometer| that extended |Meter|, then unboxing |m| would be ambiguous, as its boxed representation might be either of the classes. This observation is consistent with both C\#, where value classes cannot be extended, and Scala, where value classes are declared by inheriting from the marker class |AnyVal| and are automatically made final.
 
@@ -935,9 +935,9 @@ We can compare the miniboxing plugin before and just after the LDL mechanism was
 \end{itemize}
 
 
-\begin{figure}
+\begin{figure}[t!]
 \centering
-\includegraphics[width=0.45\textwidth]{graph.eps}
+\includegraphics[width=0.80\textwidth]{graph.eps}
 \caption{Least squares method using linked lists}
 \label{fig:linkedlist}
 
@@ -1048,7 +1048,7 @@ A different direction in unboxing primitive types is based on escape analysis \c
 
 The Haskell programming language has two reasons to box primitive types in the low level code: (1) due to the non-strictness of the language, arguments to a function may not have been evaluated yet and are thus represented as thunks and (2) due to erased parametric polymorphism. Haskell exposes both the boxed |Int| representation and the unboxed |Int#|, although the compiler does transform |Int| values to |Int#| where possible. To do so, the Glasgow Haskell Compiler uses a syntax-based transformation coupled with a peephole optimization \cite{spj-unboxed-values, launchbury-unpointed}. In general, peephole optimizations have been formalized by \textem{Henglein} in \cite{henglein-formally-optimal-boxing}. Haskell also features calling convention optimizations that make the argument laziness explicit and can unbox primitives in certain situations \cite{bolingbroke-haskell-calling-conventions}.
 
-\textbf{Value classes} have been proposed for Java as early as 1999 \cite{gosling-value-classes, rose-value-classes-vm, rose-value-classes-tearing}. The most recent description, which is also closest to our current approach, is the value class proposal for the Scala programming language \cite{scala-value-classes-sip}. We build upon the idea that a single concept should be exposed despite having multiple representations, but we step away from ad-hoc encodings and fixed rules in the type system. In this way, we can capture other representations, such as the tagged representation in \cite{morrison-napier88}. Value classes have also been implemented in the CLR \cite{dot-net-value-types-www}, but to the best of our knowledge the implementation has not been described in an academic setting. The Haskell programming language offers the |newtype| declaration \cite{haskell-newtype} that, modulo the bottom type $\bot$, is unboxed similarly to value classes.
+\textbf{Value classes} have been proposed for Java as early as 1999 \cite{gosling-value-classes, rose-value-classes-vm, rose-value-classes-tearing}. The most recent description, which is also closest to our current approach, is the value class proposal for the Scala programming language \cite{sip-value-classes}. We build upon the idea that a single concept should be exposed despite having multiple representations, but we step away from ad-hoc encodings and fixed rules in the type system. In this way, we can capture other representations, such as the tagged representation in \cite{morrison-napier88}. Value classes have also been implemented in the CLR \cite{dot-net-value-types-www}, but to the best of our knowledge the implementation has not been described in an academic setting. The Haskell programming language offers the |newtype| declaration \cite{haskell-newtype} that, modulo the bottom type $\bot$, is unboxed similarly to value classes.
 
 \textbf{Specialization} for generics is a technique aimed at eliminating boxing deep inside generic classes. Specialization has been implemented in Scala \cite{iuli-thesis, specialization-iuli} and has been improved by miniboxing \cite{miniboxing, miniboxing-www}. Specialization and macros have been combined to produce a mechanism for ad-hoc specialization of code in Scala \cite{bridging}. The .NET CLR automatically specializes all generics, thanks to its bytecode metadata and reified types \cite{dot-net-generics}.
 
@@ -1062,13 +1062,13 @@ A different approach to deep boxing elimination is described for Haskell \cite{s
 
 In the area of formal descriptions, two papers on type-directed coercion insertion stand out as very closely related to this paper \cite{swamy-typed-coercions, leather-type-changing-rewriting}. The work of {\em Swami} et al. \cite{swamy-typed-coercions} focuses on automatically composing several coercions together in order to bridge the gap between different types. The highlight of the paper are the powerful composition rules and the proofs that, despite their generality, always produce syntactically unique, non-ambiguous rewritings. This work resembles the mechanisms used to introduce implicit conversions in Scala, although the rules provide more flexibility and are proven not to diverge. On the other hand, {\em Leather} et al. \cite{leather-type-changing-rewriting} describe a coercion insertion mechanism which deliberately produces ambiguous rewritings from which heuristics can pick the best. More importantly, the formalism presented in \cite{leather-type-changing-rewriting} is also capable of consistently changing types in the rewrite rules, making the transformation very versatile. Unfortunately, the two formalisms do not handle backward propagation, object orientation and subtyping, all of which are crucial to performing optimal data representation transformations in Scala. Furthermore, they do not provide the ability to selectively transform the data representation, making them unusable for the three use cases we presented. By comparison, an important limitation of our work is that the |box| and |unbox| coercions we introduce are un-ambiguous and not composible by design, as we aim for a one-step conversion between different representations.
 
-\section{Acknowledgements}
-
-We would like to thank Aymeric Gen\^et, who developed the least squares benchmark for the miniboxing plugin \cite{miniboxing-linkedlist}.
-
-We are grateful to the Scala teams at EPFL and Typesafe for providing precious feedback and helping shape the representation mechanism we have today. In particular, we would like to thank Manohar Jonnalagedda, Dmitry Petrashko, Iulian Dragos, Miguel Garcia and Lukas Rytz for the discussions we had, which always led to interesting developments. We are thankful to the Scala community, for trying the project, reporting bugs and providing cool new ideas. We would like to thank our paper and artifact reviewers in the OOPSLA conference for providing clear and concise feedback, which guided us in improving the paper.
-
-Last but not least, Vlad is grateful to his wife Ana Lucia and his family who supported him through very difficult times when this paper was written. \iv{Vă pup!}
+% \section{Acknowledgements}
+%
+% We would like to thank Aymeric Gen\^et, who developed the least squares benchmark for the miniboxing plugin \cite{miniboxing-linkedlist}.
+%
+% We are grateful to the Scala teams at EPFL and Typesafe for providing precious feedback and helping shape the representation mechanism we have today. In particular, we would like to thank Manohar Jonnalagedda, Dmitry Petrashko, Iulian Dragos, Miguel Garcia and Lukas Rytz for the discussions we had, which always led to interesting developments. We are thankful to the Scala community, for trying the project, reporting bugs and providing cool new ideas. We would like to thank our paper and artifact reviewers in the OOPSLA conference for providing clear and concise feedback, which guided us in improving the paper.
+%
+% Last but not least, Vlad is grateful to his wife Ana Lucia and his family who supported him through very difficult times when this paper was written. \iv{Vă pup!}
 
 \section{Conclusion}
 

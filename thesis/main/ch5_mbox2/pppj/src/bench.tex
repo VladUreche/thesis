@@ -80,3 +80,79 @@ If we consider the |RRB-Vector| development time, which took four months of work
 
 
 \subsubsection*{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.
+
+\subsection{ADRT in Realistic Libraries}
+\label{sec:benchmarks:funcs}
+
+\begin{table}[t]
+  \begin{tabularx}{0.98\textwidth}{|g *{3}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark} & \textbf{Generic} & \textbf{Miniboxed}& \textbf{Miniboxed} \\
+    \rowcolor{Gray}
+                       &                  &                   & +functions \\ \hline
+    Sum                &          98.2 ms &          158.6 ms &             18.0 ms \\
+    SumOfSquares       &         131.6 ms &          193.1 ms &             12.0 ms \\
+    SumOfSqEven        &          92.3 ms &          189.6 ms &             48.7 ms \\
+    Cart               &         217.4 ms &          214.9 ms &             57.5 ms \\ \hline
+  \end{tabularx}
+
+  \caption{Scala Streams pipelines for 10M elements.}
+  \label{table:streams}
+
+\end{table}
+
+The |adrt| scoped transformation is a conceptual generalization of a mechanism
+motivated by library transformation scenarios. In particular, the
+resulting data representation transformation is used in conjunction
+with the miniboxing transformation \cite{miniboxing-www, miniboxing},
+in order to replace standard library \emph{functions} and \emph{tuples}
+by custom, optimized versions adequate for miniboxed code \cite{miniboxing-pppj}.
+The scope of this data representation transformation is miniboxing-transformed code.
+
+The miniboxing transformation \cite{miniboxing} proposes an alternative to erasure, allowing generic methods and classes to work efficiently with unboxed primitive types. Unlike the current specialization transformation in the Scala compiler \cite{iuli-thesis}, which duplicates and adapts the generic code once for every primitive type, the miniboxing transformation only duplicates the code once and \emph{encodes all primitive types in long integers}. This allows miniboxing to scale much better than specialization \cite{miniboxing-linkedlist} in terms of bytecode size while providing comparable performance. Yet, one of the main drawbacks of using the miniboxing plugin is that all Scala library classes are either generic or specialized with the built-in Scala specialization scheme, which is not compatible with miniboxing. Therefore, interacting with functions and tuples from miniboxed code incurs significant overhead.
+
+Consider, for example, functions. (Tuples raise similar issues.) Scala offers functions as first-class citizens. However, since functions are not first-class citizens in the Java Virtual Machine bytecode, the Scala compiler desugars them to anonymous classes extending a functional interface. The following example shows the desugaring of function |(x: Int) => x + 1|:
+
+\begin{lstlisting-nobreak}
+class $anon extends Function1[Int, Int] {
+  def apply(x: Int): Int = x + 1
+}
+new $anon()
+\end{lstlisting-nobreak}
+
+This function desugaring does not expose a version of the |apply| method that encodes the primitive type as a long integer, as the miniboxing transformation expects. Therefore, when programmers write miniboxed code that uses functions, they have two choices: either accept the slowdown caused by converting the representation or define their own miniboxed |Function1| class, and perform the function desugaring by hand. Neither of these is a good solution.
+
+Our data representation transformation converts the references to |Function1| in miniboxed code to the optimized |MiniboxedFunction1|, which allows calls to use the miniboxed representation, thus being more efficient. The problem is that the miniboxed code needs to interoperate with library-defined code, or with other libraries that were not transformed. Thus, the miniboxed code acts as a scope for the \emph{function and tuple representation transformation}, i.e., the ADR transformation of |Function| and |Tuple|. This transformation has a significant impact in library benchmarks.
+
+\begin{table}[t]
+  \begin{tabularx}{0.98\textwidth}{|g *{1}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark}             &  \textbf{Running time} \\ \hline
+    Manual C-like code             &         0.650 $\mu$s \\
+    Miniboxing with functions      &         0.705 $\mu$s \\
+    Miniboxing without functions   &         3.080 $\mu$s \\
+    Generic                        &        13.409 $\mu$s \\ \hline
+  \end{tabularx}
+
+  \caption{Mapping a 1K vector.}
+  \label{table:framian}
+
+\end{table}
+
+\subsubsection*{The Scala-Streams library} \cite{biboudis_clash_2014} imitates the design of the Java 8 stream library, to achieve high performance (relative to standard Scala libraries) for functional operations on data streams. The library is available as an open-source implementation \cite{biboudis-streams}. In its continuation-based design, each stream combinator provides a function that is stacked to form a transformation pipeline. As the consumer reads from the final stream, the transformation pipeline is executed, processing an element from the source into an output element. However, the pipeline architecture is complex, since combinators such as |filter| may drop elements, stalling the pipeline.
+
+Table \ref{table:streams} shows the result of applying our data
+representation transformation to the Scala-Streams published
+benchmarks. (The benchmarks are described in detail in prior
+literature \cite{biboudis_clash_2014,biboudis_et_al:ECOOP:short}.) As can be seen, the miniboxing
+transformation is an enabler of our optimization but produces
+\emph{worse} results by itself (due to extra conversions).
+
+Compared to the original library, the application of miniboxing and
+data representation optimization for functions achieves a very high
+speedup---up to 11x for the SumOfSquares benchmark. In fact, the
+speedup relative to the miniboxed code without the function
+representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the llama's ass!}
+
+
+\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}

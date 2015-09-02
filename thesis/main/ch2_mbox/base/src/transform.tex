@@ -44,19 +44,19 @@ Type-encoding bytes (or type bytes for short) record the original type of the mi
  def print[@minispec T](value: T): Unit = println(value.toString)
 \end{lstlisting-nobreak}
 
-Having the type parameter |T| annotated with |@minispec| will trigger miniboxing, which will duplicate this method for |Long|-encoded value types, which we also call miniboxed types. Like specialization, miniboxing produces groups of overloaded methods, with the original method being the all-reference implementation in its group. In our case, only the miniboxed overload needs to be created. To do so, the compiler will create another version of |print| for long integers, which we call |print_M|: 
+Having the type parameter |T| annotated with |@minispec| will trigger miniboxing, which will duplicate this method for |Long|-encoded value types, which we also call miniboxed types. Like specialization, miniboxing produces groups of overloaded methods, with the original method being the all-reference implementation in its group. In our case, only the miniboxed overload needs to be created. To do so, the compiler will create another version of |print| for long integers, which we call |print_M|:
 
 \begin{lstlisting-nobreak}
  def print_M(value: Long): Unit = println(value.toString)
 \end{lstlisting-nobreak}
 
-This is a very naive translation. Calling |print(false)|, after method rewiring, will transform the boolean to a long integer whose value will be printed on the screen instead of the ``false'' string. To perform the correct action, the translation should recover the string representation of the boolean value |false| from the |Long| encoding. This suggests the |toString| operation should be rewritten to: 
+This is a very naive translation. Calling |print(false)|, after method rewiring, will transform the boolean to a long integer whose value will be printed on the screen instead of the ``false'' string. To perform the correct action, the translation should recover the string representation of the boolean value |false| from the |Long| encoding. This suggests the |toString| operation should be rewritten to:
 
 \begin{lstlisting-nobreak}
  def print_M(value: Long): Unit = println(MBRuntime.toString(value))
 \end{lstlisting-nobreak}
 
-The code above shows a less naive implementation, since it rewires |toString| calls on the miniboxed value to a special runtime support object in order to obtain the string representation. But passing a single miniboxed value isn't enough, as we mentioned miniboxing does not encode the type with the value as tagged unions do \cite{tagged-unions-lua}. Therefore, it should have a separate parameter to encode the original type: 
+The code above shows a less naive implementation, since it rewires |toString| calls on the miniboxed value to a special runtime support object in order to obtain the string representation. But passing a single miniboxed value isn't enough, as we mentioned miniboxing does not encode the type with the value as tagged unions do \cite{tagged-unions-lua}. Therefore, it should have a separate parameter to encode the original type:
 
 \begin{lstlisting-nobreak}
  def print_M(T_Type: Byte, value: Long): Unit = println(MBRuntime.toString(value, T_Type))
@@ -82,7 +82,7 @@ First, the new signature is created, knowing the type parameter |T| is encoded a
  def print_M[T](T_Type: Byte, value: Long): Unit = // need to copy and adapt body from print
 \end{lstlisting-nobreak}
 
-In the second step, the body is copied from the |print| method. To maintain type correctness, all the symbols previously recorded as having their types changed are now automatically boxed back to generic type |T|, so the newly generated code tree is consistent in terms of types: 
+In the second step, the body is copied from the |print| method. To maintain type correctness, all the symbols previously recorded as having their types changed are now automatically boxed back to generic type |T|, so the newly generated code tree is consistent in terms of types:
 
 \begin{lstlisting-nobreak}
  def print_M[T](T_Type: Byte, value: Long): Unit = println(MBRuntime.MiniboxToBox[T](value, T_Type).toString)
@@ -98,23 +98,23 @@ The next section will explain why it is necessary to carry the type parameter |T
 
 \subsubsection*{Shallow and Deep Type Transformations}
 \label{sec-mb-traf-shallow}
- 
+
 To further understand the miniboxing transformation, let us look at a more complex example, which builds a linked list with a single element:
 
 \begin{lstlisting-nobreak}
- def list[@minispec T](value: T): ListNode[T] = new ListNode[T](value, null) 
+ def list[@minispec T](value: T): ListNode[T] = new ListNode[T](value, null)
 \end{lstlisting-nobreak}
 
 As explained before, the |list| method will become the all-reference overload. But the interesting transformation happens in the miniboxed variant. If specialization were to transform this method its signature would be:
 
 \begin{lstlisting-nobreak}
- def list_M[T](value: Long): ListNode[Long] 
+ def list_M[T](value: Long): ListNode[Long]
 \end{lstlisting-nobreak}
 
 The return type is incorrect, as we expect |list(3)| to return a |ListNode[Int]|, and yet rewiring |list(3)| to |list_M(...)| would return a |ListNode[Long]|. This exposes the difference between the deep type transformation in specialization and the shallow type transformation in miniboxing: In miniboxing, only values of type |T| are transformed to |Long|, but any type referring to |T|, such as |ListNode[T]|, will remain the same. This explains why the type parameter |T| is carried over to |print_M| and |list_M|: it may still be used in the method's signature and code. The full transformation for method |list_M| will be:
 
 \begin{lstlisting-nobreak}
- def list_M[T](T_Type: Byte, value: Long): ListNode[T] = 
+ def list_M[T](T_Type: Byte, value: Long): ListNode[T] =
    new ListNode[T](MiniboxToBox[T](value, T_Type))
 \end{lstlisting-nobreak}
 
@@ -123,17 +123,17 @@ The shallow type transformation also changes types of local variables from |T| t
 \subsubsection*{Peephole Transformation}
 \label{sec-mb-traf-peephole}
 
-The last transformation to touch the code before it is shipped to the next phase is the peephole transformation, which performs a final sweep over the code to remove redundant conversions. To show this phase at work, let us consider what happens if the |ListNode| class in the last example is also annotated for miniboxing. In this case, the class will have a miniboxed variant, |ListNode_M| to which the instantiation is rewired. Since the |head| parameter of the |ListNode| constructor is boxed, while the |head| parameter of the |ListNode_M| constructor is miniboxed, the transformation will introduce a new |BoxToMinibox| conversion:   
+The last transformation to touch the code before it is shipped to the next phase is the peephole transformation, which performs a final sweep over the code to remove redundant conversions. To show this phase at work, let us consider what happens if the |ListNode| class in the last example is also annotated for miniboxing. In this case, the class will have a miniboxed variant, |ListNode_M| to which the instantiation is rewired. Since the |head| parameter of the |ListNode| constructor is boxed, while the |head| parameter of the |ListNode_M| constructor is miniboxed, the transformation will introduce a new |BoxToMinibox| conversion:
 
 \begin{lstlisting-nobreak}
- def list_M[T](T_Type: Byte, value: Long): ListNode[T] = 
+ def list_M[T](T_Type: Byte, value: Long): ListNode[T] =
    new ListNode_M[T](T_Type, BoxToMinibox[T](MiniboxToBox[T](value, ...)), null)
 \end{lstlisting-nobreak}
 
-Converting from |Long| to the boxed representation and back before creating the list node will certainly affect performance. Such consecutive complementary conversions and other suboptimal constructs are automatically removed by the peephole optimization: % After the rewrite, the code for |list_M| will be: 
+Converting from |Long| to the boxed representation and back before creating the list node will certainly affect performance. Such consecutive complementary conversions and other suboptimal constructs are automatically removed by the peephole optimization: % After the rewrite, the code for |list_M| will be:
 
 \begin{lstlisting-nobreak}
- def list_M[T](T_Type: Byte, value: Long): ListNode[T] = 
+ def list_M[T](T_Type: Byte, value: Long): ListNode[T] =
    new ListNode_M[T](T_Type, value, null)
 \end{lstlisting-nobreak}
 
@@ -167,7 +167,7 @@ And the miniboxed variant of this class will be:
  class ListNode_M[T]
    (T_Type: Byte, head: Long, tail: ListNode[T]) extends ListNode[T] {
    ... // getters for head and tail
-   def contains(element: T): Boolean = 
+   def contains(element: T): Boolean =
          ... // redirect to this.contains_M
    def contains_M(T_Type_local: Byte, element: Long): Boolean =
          ... // specialized implementation
@@ -180,46 +180,46 @@ And the miniboxed variant of this class will be:
  class ListNode_L[T]
    (head: T, tail: ListNode[T]) extends ListNode[T] {
    ... // getters for head and tail
-   def contains(element: T): Boolean = 
+   def contains(element: T): Boolean =
          ... // generic implementation
    def contains_M(T_Type_local: Byte, element: Long): Boolean =
          ... // redirect to this.contains
  }
 \end{lstlisting-nobreak}
 
-All instantiations of |ListNode| where the type argument is statically known to be a value type are rewired to |ListNode_M|. The rest of the instantiations are rewired to |ListNode_L|, either because the type argument is not known statically or because it is known to be a reference type. Therefore, there is no reason for |ListNode_L| to carry |T_Type| as a global field. But, in order to allow |contains_M| to decode the miniboxed value |element| into a boxed form and redirect the call |contains|, a local type byte is necessary. Since the |ListNode| interface and its two implementations, |ListNode_L| and |ListNode_M| need to be compatible, the local type byte in |contains_M| is also present for |ListNode_M|, although in the miniboxed class it is redundant. 
+All instantiations of |ListNode| where the type argument is statically known to be a value type are rewired to |ListNode_M|. The rest of the instantiations are rewired to |ListNode_L|, either because the type argument is not known statically or because it is known to be a reference type. Therefore, there is no reason for |ListNode_L| to carry |T_Type| as a global field. But, in order to allow |contains_M| to decode the miniboxed value |element| into a boxed form and redirect the call |contains|, a local type byte is necessary. Since the |ListNode| interface and its two implementations, |ListNode_L| and |ListNode_M| need to be compatible, the local type byte in |contains_M| is also present for |ListNode_M|, although in the miniboxed class it is redundant.
 
 \subsection{Calling the Runtime Support}
 \label{sec-mb-traf-runtime}
 
-The previous examples have shown how the miniboxing plugin uses the |MBRuntime| object for conversions between unboxed, miniboxed and boxed data representations. But the |MBRuntime| object is not limited to conversions. In Scala, any type parameter is assumed to be a subtype of the |Any| class, so the programmer can invoke methods such as |toString|, |hashCode| and |equals| on generic values. As shown in \S\ref{sec-mb-traf-type-bytes}, these calls can be translated by a conversion to the boxed representation followed by the call, but are further optimized by calling the implementations in |MBRuntime|, which work directly on miniboxed values.  
+The previous examples have shown how the miniboxing plugin uses the |MBRuntime| object for conversions between unboxed, miniboxed and boxed data representations. But the |MBRuntime| object is not limited to conversions. In Scala, any type parameter is assumed to be a subtype of the |Any| class, so the programmer can invoke methods such as |toString|, |hashCode| and |equals| on generic values. As shown in \S\ref{sec-mb-traf-type-bytes}, these calls can be translated by a conversion to the boxed representation followed by the call, but are further optimized by calling the implementations in |MBRuntime|, which work directly on miniboxed values.
 
 Aside from conversions and implementations for the methods in the |Any| class, the miniboxing runtime support contains code to allow direct interaction between arrays and miniboxed values. An example that uses arrays is the |ArrayBuffer| class:
 
 \begin{lstlisting-nobreak}
  class ArrayBuffer[@minispec T: Manifest] {
-   // fields: 
-   private[this] var array = new Array[T](32) 
+   // fields:
+   private[this] var array = new Array[T](32)
    ...
-   // methods: 
+   // methods:
    def getElement(idx: Int): T = array(idx)
    ...
  }
 \end{lstlisting-nobreak}
 
-The miniboxed variant |ArrayBuffer_M| is rewritten to call the |MBArray| object to create and access arrays in the miniboxed format: 
-  
+The miniboxed variant |ArrayBuffer_M| is rewritten to call the |MBArray| object to create and access arrays in the miniboxed format:
+
 \begin{lstlisting-nobreak}
  // ArrayBuffer miniboxed variant for primitives:
- class ArrayBuffer_M[T: Manifest](T_Type: Byte) 
+ class ArrayBuffer_M[T: Manifest](T_Type: Byte)
                                extends ArrayBuffer[T] {
    // fields:
    private[this] var array: Array[T] = MBArray.mbarray_new(32, T_Type)
    ...
-   // methods: 
-   def getElement(idx: Int): T = 
+   // methods:
+   def getElement(idx: Int): T =
        MiniboxToBox(getElement_M(T_Type, idx), ...)
-   def getElement_M(T_Type_local: Byte, idx: Int): Long = 
+   def getElement_M(T_Type_local: Byte, idx: Int): Long =
        MBArray.array_get(array, idx, T_Type)
    ...
  }
