@@ -1,5 +1,5 @@
 \section{Implementation}
-\label{sec:impl}
+\label{ildl:sec:impl}
 
 We implemented the ADR transformation as a Scala compiler plugin \cite{ildl-plugin}, by extending the open-source multi-stage programming transformation provided with the LDL \cite{ldl} artifact, available at \cite{ldl-staging-plugin}. In this section we describe the technical aspects of our implementation that are not directly related to the transformation itself, but to providing a good programmer experience. Readers should also refer to the paper Appendix for an end-to-end example of the transformation phases. Additionally, the paper is accompanied by an artifact which can be used to explore the transformation.
 
@@ -60,9 +60,9 @@ def foo: (Int, Int) = {
 
 \noindent
 After the \inject{} phase, the annotated signatures are persisted, allowing the scope composition to work across separate compilation.
-Later, the \bridge{}, \coerce{} and \commit{} phases proceed as described in \S\ref{sec:drt} and \S\ref{sec:ildl}.
+Later, the \bridge{}, \coerce{} and \commit{} phases proceed as described in \S\ref{ildl:sec:drt} and \S\ref{ildl:sec:ildl}.
 
-\paragraph*{The transformation description objects} extend the marker trait |TransformationDescription|. Although the marker trait is empty, the description object needs to define at least the |toHigh| and |toRepr| coercions, which may be generic, as shown in \S\ref{sec:ildl:custom}. The programmer is then free to add bypass methods, in order to avoid decoding the representation type for the purpose of dynamically dispatching method calls. To aid the programmer in adding bypass methods, the \coerce{} phase warns whenever it does not find a suitable bypass method, indicating both the expected name and the expected method signature. \iv{Help, I'm trapped here!}
+\paragraph*{The transformation description objects} extend the marker trait |TransformationDescription|. Although the marker trait is empty, the description object needs to define at least the |toHigh| and |toRepr| coercions, which may be generic, as shown in \S\ref{ildl:sec:ildl:custom}. The programmer is then free to add bypass methods, in order to avoid decoding the representation type for the purpose of dynamically dispatching method calls. To aid the programmer in adding bypass methods, the \coerce{} phase warns whenever it does not find a suitable bypass method, indicating both the expected name and the expected method signature. \iv{Help, I'm trapped here!}
 
 Here we encountered a bootstrapping problem: although bypass methods handle the representation type, during the \coerce{} phase, their signatures are expected to take parameters of the annotated high-level type, in order to allow redirecting method calls. To work around this problem, we added the |@high| annotation, which acts as an anti-|@repr| and marks the representation types:
 

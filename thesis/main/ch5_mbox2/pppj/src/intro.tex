@@ -1,5 +1,5 @@
 \section{Introduction}
-\label{sec:intro}
+\label{mbox2:sec:intro}
 
 Generics on the Java platform are compiled using the erasure transformation \cite{java-erasure}, which allows them to be fully backward compatible with pre-generics bytecode. Unfortunately, this also means that they only handle by-reference values (objects) and not primitive types. Thus, primitive values such as bytes and integers have to be converted to heap objects each time they interact with generics. This conversion, known as boxing, compromises the execution performance and increases the heap footprint, forcing Java to lag behind lower-level languages such as C or C++.
 
@@ -76,10 +76,10 @@ Another problem that occurs frequently concerns library evolution: as a new comp
 With this, the paper makes four key contributions to the Java community and, in the general sense, to the field of compiling object-oriented languages with generics:
 
 \begin{itemize}
-  \item Describing the problems involved in mixing different generics compilation schemes (\S\ref{sec:minibox});
-  \item Describing a general mechanism for harmonizing the compilation scheme (\S\ref{sec:advisories});
-  \item Describing the approaches we use to fast-path communication between different generic compilation schemes (\S\ref{sec:library});
-  \item Validating the approach using the miniboxing plugin (\S\ref{sec:bench}).
+  \item Describing the problems involved in mixing different generics compilation schemes (\S\ref{mbox2:sec:minibox});
+  \item Describing a general mechanism for harmonizing the compilation scheme (\S\ref{mbox2:sec:advisories});
+  \item Describing the approaches we use to fast-path communication between different generic compilation schemes (\S\ref{mbox2:sec:library});
+  \item Validating the approach using the miniboxing plugin (\S\ref{mbox2:sec:bench}).
 \end{itemize}
 
-The evaluation section (\S\ref{sec:bench}) shows that warnings not only help avoid performance regressions, but can also guide developers into further improving their program's performance.
+The evaluation section (\S\ref{mbox2:sec:bench}) shows that warnings not only help avoid performance regressions, but can also guide developers into further improving their program's performance.

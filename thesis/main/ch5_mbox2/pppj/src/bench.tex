@@ -10,7 +10,7 @@
   \end{tabularx}
 
   \caption{RRB-Vector operations for 5M elements.}
-  \label{table:rrbvector}
+  \label{mbox2:table:rrbvector}
 
 \end{table}
 
@@ -31,14 +31,14 @@
   \end{tabularx}
 
   \caption{Speedups based on performance advisories, PNWScala}
-  \label{table:pureimage}
+  \label{mbox2:table:pureimage}
 
 \end{table}
 
 
 
 \section{Benchmarks}
-\label{sec:bench}
+\label{mbox2:sec:bench}
 
 
 
@@ -62,12 +62,12 @@ The original |RRB-Vector| implementation used erased generics. To show that perf
   \end{tabularx}
 
   \caption{Sorting 1M tuples using quicksort.}
-  \label{table:tuple}
+  \label{mbox2:table:tuple}
 
 \end{table}
 
 
-Table \ref{table:rrbvector} shows the performance improvements measured on four key operations of the |RRB-Vector|: creating the structure element by element using a builder and invoking bulk data operations: |map|, |fold| and |reverse|. The ScalaMeter framework \cite{scalameter} was used as a benchmarking harness on a quad-core Intel Core i7-4600U processor running at 2.10GHz with 12GB of RAM, on OpenJDK7. %The processor frequency was fixed during benchmarking.
+Table \ref{mbox2:table:rrbvector} shows the performance improvements measured on four key operations of the |RRB-Vector|: creating the structure element by element using a builder and invoking bulk data operations: |map|, |fold| and |reverse|. The ScalaMeter framework \cite{scalameter} was used as a benchmarking harness on a quad-core Intel Core i7-4600U processor running at 2.10GHz with 12GB of RAM, on OpenJDK7. %The processor frequency was fixed during benchmarking.
 
 The numbers show speedups between 1.9 and 3x for the |builder|, |map| and |fold| benchmarks. This can be explained by the fact that, in the erased version, each element required at least a boxing operation, and thus a heap allocation. On the other hand, the |reverse| operation does not require any boxing so there is no speedup achieved. Nevertheless, introducing the miniboxing transformation does not lead to significant slowdowns.
 
@@ -75,14 +75,14 @@ If we consider the |RRB-Vector| development time, which took four months of work
 
 
 
-\subsubsection*{Image processing.} Performance advisories can be used to improve the performance of Scala programs without any previous knowledge of how the transformation works. This was shown at the PNWScala 2014 developer conference \cite{pnwscala-conf}, where Vlad Ureche presented how the miniboxing plugin guides the programmer into improving the performance of a mock-up image processing library by as much as 4x \cite{pnwscala-pureimage}. The presentation was recorded and the performance numbers are included in Table \ref{table:pureimage} for quick reference.
+\subsubsection*{Image processing.} Performance advisories can be used to improve the performance of Scala programs without any previous knowledge of how the transformation works. This was shown at the PNWScala 2014 developer conference \cite{pnwscala-conf}, where Vlad Ureche presented how the miniboxing plugin guides the programmer into improving the performance of a mock-up image processing library by as much as 4x \cite{pnwscala-pureimage}. The presentation was recorded and the performance numbers are included in Table \ref{mbox2:table:pureimage} for quick reference.
 
 
 
-\subsubsection*{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.
+\subsubsection*{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{mbox2:table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.
 
 \subsection{ADRT in Realistic Libraries}
-\label{sec:benchmarks:funcs}
+\label{mbox2:sec:benchmarks:funcs}
 
 \begin{table}[t]
   \begin{tabularx}{0.98\textwidth}{|g *{3}{|Y}|} \hline
@@ -97,7 +97,7 @@ If we consider the |RRB-Vector| development time, which took four months of work
   \end{tabularx}
 
   \caption{Scala Streams pipelines for 10M elements.}
-  \label{table:streams}
+  \label{mbox2:table:streams}
 
 \end{table}
 
@@ -135,13 +135,13 @@ Our data representation transformation converts the references to |Function1| in
   \end{tabularx}
 
   \caption{Mapping a 1K vector.}
-  \label{table:framian}
+  \label{mbox2:table:framian}
 
 \end{table}
 
 \subsubsection*{The Scala-Streams library} \cite{biboudis_clash_2014} imitates the design of the Java 8 stream library, to achieve high performance (relative to standard Scala libraries) for functional operations on data streams. The library is available as an open-source implementation \cite{biboudis-streams}. In its continuation-based design, each stream combinator provides a function that is stacked to form a transformation pipeline. As the consumer reads from the final stream, the transformation pipeline is executed, processing an element from the source into an output element. However, the pipeline architecture is complex, since combinators such as |filter| may drop elements, stalling the pipeline.
 
-Table \ref{table:streams} shows the result of applying our data
+Table \ref{mbox2:table:streams} shows the result of applying our data
 representation transformation to the Scala-Streams published
 benchmarks. (The benchmarks are described in detail in prior
 literature \cite{biboudis_clash_2014,biboudis_et_al:ECOOP:short}.) As can be seen, the miniboxing
@@ -155,4 +155,4 @@ speedup relative to the miniboxed code without the function
 representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the llama's ass!}
 
 
-\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
+\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{mbox2:table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}

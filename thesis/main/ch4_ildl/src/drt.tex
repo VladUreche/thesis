@@ -1,7 +1,7 @@
 
 
 \section{Data Representation Transformations}
-\label{sec:drt}
+\label{ildl:sec:drt}
 
 As necessary background for our approach, we review data representation transformations and, in particular, the Late Data Layout transformation mechanism \cite{ldl}, which we later extend to our Ad hoc Data Representation Transformation.
 
@@ -106,7 +106,7 @@ val k: Any = `Integer.valueOf`(j)
 The \commit{} phase is responsible for the consistency of the transformation. Since the program abstract syntax tree (AST) has been checked by the type-system extended with representation semantics, the \commit{} phase is guaranteed to correctly handle the value representations and to correctly coerce between them. This allows the \commit{} phase to be a very simple transformation over the program AST.
 
 \subsection{Support For Object-Oriented Programming}
-\label{sec:ldl:oo-patterns}
+\label{ildl:sec:ldl:oo-patterns}
 
 The LDL mechanism targets object-oriented programming languages, which pose unique challenges for data representation transformations. This section will describe the additional rules necessary in LDL to handle object-orientation.
 

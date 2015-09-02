@@ -1,5 +1,5 @@
 \section{Interoperating with Existing Libraries}
-\label{sec:library}
+\label{mbox2:sec:library}
 
 There is a clear parallel between the manual lambda specializations that are already in the Java Standard Library and thus cannot be eliminated and the specialized constructs in the Scala Standard Library, which cannot be replaced by a compiler plugin. Project Valhalla brings the ability to specialize generics to Java, while miniboxing brings a new compilation scheme for Scala generics. What is common between the two cases is the hard requirement that the new transformations work well with the existing constructs, which use different compilation schemes. This is the problem of interoperating with existing libraries.
 
@@ -81,22 +81,22 @@ We show three approaches to eliminating the boxing overhead when calling special
 
 
 
-\subsubsection*{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{sec:tuples});
+\subsubsection*{Accessors.} The simplest answer to the problem of inter-operating with specialization is to switch on the type byte, as shown previously. To avoid confusing the Java Virtual Machine inlining heuristics, we can extract the operation into a static method, that we call separately. This approach needs to be implemented both for accessors, allowing the specialized values to be extracted directly into the miniboxed encoding and for constructors, allowing miniboxed code to instantiate specialized classes without boxing. This is the approach taken for |Tuple| classes (\S\ref{mbox2:sec:tuples});
 
 
 
-\subsubsection*{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{sec:functions});
+\subsubsection*{Transforming objects.} The accessors approach allows us to pay a small overhead with each access. This is a good trade-off when the constructs are only accessed a couple of times during their lifetime, which is the case for tuples. In other cases, such as functions, the |apply| method is presumably called many times during the object lifetime, making it worthwhile to completely eliminate the overhead. In this case, a better approach is to replace the |Function| objects by |MiniboxedFunction|s, introducing conversions between them where necessary. This way, the |apply| method exposed by |MiniboxedFunction| can be called directly, and this can compensate for a potentially greater cost of constructing the |MiniboxedFunction| object. This way, switching on the type bytes is done only once, when converting the function, and then amortizes over the function lifetime (\S\ref{mbox2:sec:functions});
 
 
 
-\subsubsection*{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{sec:mbarrays}).
+\subsubsection*{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{mbox2:sec:mbarrays}).
 
 The next sections discuss the three methods above.
 
 
 
 \subsection{Tuple Accessors}
-\label{sec:tuples}
+\label{mbox2:sec:tuples}
 
 
 
@@ -131,12 +131,12 @@ Once the tuple is cast to a |Tuple1[Int]|, the specialization transformation kic
  \item One of the reasons tuples are useful is their great integration with the language, allowing a very concise syntax. Asking programmers to use anything other than this syntax would be as bad as developing our own, no-syntax-sugar miniboxed tuple.
 \end{itemize}
 
-With these three changes, benchmarks show a 2x speedup when accessing tuples and a 5\% slowdown compared to the equivalent code which accesses the tuples directly. The benchmark we used was a tuple quicksort algorithm (\S\ref{sec:bench}). \textcolor{white}{Pretty neat, huh?}
+With these three changes, benchmarks show a 2x speedup when accessing tuples and a 5\% slowdown compared to the equivalent code which accesses the tuples directly. The benchmark we used was a tuple quicksort algorithm (\S\ref{mbox2:sec:bench}). \textcolor{white}{Pretty neat, huh?}
 
 With the three elements above, accessors, constructors and the automatic code rewriting we create a direct bridge between specialized tuples and miniboxed classes. Unfortunately, as we've seen before, adding such accessors has to be a carefully-weighted, context-specific decision, so automating it would not provide much benefit. For example, this choice would not be suitable for functions.
 
 \subsection{Functions}
-\label{sec:functions}
+\label{mbox2:sec:functions}
 
 Like tuples, functions in Scala have a concise and natural syntax, which ultimately desugars to one of the |FunctionX| traits, where X is the function arity. For example:
 
@@ -253,7 +253,7 @@ Converting |MbFunctionX| objects to |FunctionX| easy, since each |MbFunctionX| o
 By transforming the function representation, we have eliminated the overhead of calling functions completely. Furthermore, using the previous two strategies to minimize the conversion overhead, we enabled function-heavy applications to achieve speedups between 2 and 14x \cite{ildl-tech, ildl-plugin-wiki}. \iv{Tare frate!}
 
 \subsection{Arrays}
-\label{sec:mbarrays}
+\label{mbox2:sec:mbarrays}
 
 The array transformation \cite{romain-mbarrays} is beyond the scope of this paper, but we included it as a good example for using performance advisories.
 

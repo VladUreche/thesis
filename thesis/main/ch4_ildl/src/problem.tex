@@ -1,7 +1,7 @@
 
 
 \section{Motivation and Overview}
-\label{sec:problem}
+\label{ildl:sec:problem}
 
 
 
@@ -26,7 +26,7 @@ def gcd(n1: (Int, Int), n2: (Int, Int)): (Int, Int) = {
 }
 \end{lstlisting-nobreak}
 
-Unfortunately, as our algorithm recursively computes the result, it creates linearly many pairs of integers, allocating them on the heap. If we run this algorithm with no optimizations, computing the GCD takes around 3 microseconds (on the same setup as used for our full experiments in \S\ref{sec:benchmarks}):
+Unfortunately, as our algorithm recursively computes the result, it creates linearly many pairs of integers, allocating them on the heap. If we run this algorithm with no optimizations, computing the GCD takes around 3 microseconds (on the same setup as used for our full experiments in \S\ref{ildl:sec:benchmarks}):
 
 \begin{lstlisting-nobreak}
 scala> timed(() => gcd((544, 185), (131, 181)))
@@ -51,12 +51,12 @@ This rather large speedup, of 13x, is the effect of using the long integer repre
 \end{itemize}
 
 
-The Benchmarks section (\S\ref{sec:benchmarks}) shows the contribution of each element to the speedup. This example (and many others in the Benchmarks section) show that optimizing the data representation is worthwhile. However, transforming the code by hand is both tedious and error-prone. %, so an automated transformation would be preferable.
+The Benchmarks section (\S\ref{ildl:sec:benchmarks}) shows the contribution of each element to the speedup. This example (and many others in the Benchmarks section) show that optimizing the data representation is worthwhile. However, transforming the code by hand is both tedious and error-prone. %, so an automated transformation would be preferable.
 
 
 
 \subsection{Automating the Transformation}
-\label{sec:automating}
+\label{ildl:sec:automating}
 
 
 
@@ -89,7 +89,7 @@ object IntPairComplexToLongComplex
 \end{lstlisting-nobreak}
 
 \noindent
-Transformation description objects are described in more detail in \S\ref{sec:ildl}, but we can already preview their components:
+Transformation description objects are described in more detail in \S\ref{ildl:sec:ildl}, but we can already preview their components:
 
 
 \begin{itemize}
@@ -98,7 +98,7 @@ Transformation description objects are described in more detail in \S\ref{sec:il
     \item At the type level, they define the high-level type, in this case |(Int, Int)|, which serves as the target of the transformation, and the representation type, in this case |Long|, which will be used as the optimized value representation;
     \item At the term level, they allow converting values between the two representations;
   \end{itemize}
-  \item The ``bypass methods'' part of the definition allows operations such as |*|, |%| and |norm| to run directly on values \emph{encoded} in the representation type (in this case |Long|), instead of \emph{decoding} them back to the high-level type in order to execute the dynamic dispatch. We explain how bypass methods are defined and used later on, in \S\ref{sec:ildl:method}.
+  \item The ``bypass methods'' part of the definition allows operations such as |*|, |%| and |norm| to run directly on values \emph{encoded} in the representation type (in this case |Long|), instead of \emph{decoding} them back to the high-level type in order to execute the dynamic dispatch. We explain how bypass methods are defined and used later on, in \S\ref{ildl:sec:ildl:method}.
 \end{itemize}
 
 
@@ -155,11 +155,11 @@ def gcdNaive(n1: `Long`, n2: `Long`): `Long` = {
 }
 \end{lstlisting-nobreak}
 
-There are many questions one could ask about this naive translation. For example, how does the compiler know which parameters and values to transform to the long integer representation (\S\ref{sec:ildl:custom})? How and when to encode and decode values, and what to do about values that are visible outside the scope (\S\ref{sec:ildl:scoped})? Even worse, what if parts of the code are compiled separately, in a different compiler run (\S\ref{sec:ildl:separate-compilation})?
+There are many questions one could ask about this naive translation. For example, how does the compiler know which parameters and values to transform to the long integer representation (\S\ref{ildl:sec:ildl:custom})? How and when to encode and decode values, and what to do about values that are visible outside the scope (\S\ref{ildl:sec:ildl:scoped})? Even worse, what if parts of the code are compiled separately, in a different compiler run (\S\ref{ildl:sec:ildl:separate-compilation})?
 
-Going into the semantics of the program, we can ask if the |%| (modulo) operator maintains the semantics of Gaussian integers when used for long integers. Also, is |norm| defined for long integers? Unfortunately, the response to both questions is negative. Therefore, to correctly transform the code, ADRT needs equivalent versions of the methods that operate on the long integer representation (\S\ref{sec:ildl:method}).
+Going into the semantics of the program, we can ask if the |%| (modulo) operator maintains the semantics of Gaussian integers when used for long integers. Also, is |norm| defined for long integers? Unfortunately, the response to both questions is negative. Therefore, to correctly transform the code, ADRT needs equivalent versions of the methods that operate on the long integer representation (\S\ref{ildl:sec:ildl:method}).
 
-We could also ask what would happen if |gcd| was overriding another method. Would the new signature still override it? The answer is no, so the naive translation would break the object model (\S\ref{sec:ildl:language-features}):
+We could also ask what would happen if |gcd| was overriding another method. Would the new signature still override it? The answer is no, so the naive translation would break the object model (\S\ref{ildl:sec:ildl:language-features}):
 
 \begin{lstlisting-nobreak}
 trait WithGCD[`T`] {

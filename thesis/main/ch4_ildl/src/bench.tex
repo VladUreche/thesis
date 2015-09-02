@@ -1,6 +1,6 @@
 \section{Benchmarks}
-\label{sec:benchmarks}
-\label{sec:benchmarks:ad-hoc}
+\label{ildl:sec:benchmarks}
+\label{ildl:sec:benchmarks:ad-hoc}
 
 This section evaluates the experimental benefits of ADR transformations in targeted micro-benchmarks and in
 the setting of a library and its clients.
@@ -60,7 +60,7 @@ For each benchmark, we broke down the transformation in several steps, which all
 We chose representative micro-benchmarks in order to cover a wide range of transformations using the |adrt| scope:
 
 \begin{itemize}
-\item the greatest common divisor algorithm, presented in \S\ref{sec:problem};
+\item the greatest common divisor algorithm, presented in \S\ref{ildl:sec:problem};
 \item least squares benchmark + deforestation \cite{wadler-deforestation};
 \item averaging sensor readings + array of struct;
 \item computing the first 10000 Hamming numbers.
@@ -83,11 +83,11 @@ All benchmarks are fully automated and use the |adrt| markers and transformation
   \end{tabularx}
 
   \caption{Greatest Common Divisor benchmark results.}
-  \label{table:gcd}
+  \label{ildl:table:gcd}
 \end{table*}
 
 \subsubsection*{The Gaussian Greatest Common Divisor}
-is the running example described in \S\ref{sec:problem} and used throughout the paper. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
+is the running example described in \S\ref{ildl:sec:problem} and used throughout the paper. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{ildl:table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
 
 
 \noindent
@@ -107,7 +107,7 @@ case class Complex(_1: Int, _2: Int)
 
 
 \noindent
-\textbf{The ``unboxed'' transformation} is the one shown throughout the paper. It encodes Gaussian integers as |scala.Long| values, which are automatically unboxed by the Scala compiler backend. This brings a significant speedup to the benchmark, allowing execution to occur without any heap allocation, as explained in \S\ref{sec:ildl:method}. Compared to using pairs of integers, the speedup is almost 13x and the garbage is reduced by
+\textbf{The ``unboxed'' transformation} is the one shown throughout the paper. It encodes Gaussian integers as |scala.Long| values, which are automatically unboxed by the Scala compiler backend. This brings a significant speedup to the benchmark, allowing execution to occur without any heap allocation, as explained in \S\ref{ildl:sec:ildl:method}. Compared to using pairs of integers, the speedup is almost 13x and the garbage is reduced by
 27x.
 
 
@@ -160,11 +160,11 @@ To put the transformation into context, we explored several scenarios:
   \end{tabularx}
 
   \caption{Least Squares Method benchmark results.}
-  \label{table:lslr}
+  \label{ildl:table:lslr}
 \end{table*}
 
 \noindent
-\textbf{The ``original'' case} executes the least squares method on 5 million points without any transformation. Table \ref{table:lslr} shows that, on average, as much as 1.1 GB of heap memory is reclaimed during the benchmark run, significantly slowing down the execution. If it was not for the in-benchmark GC pause, the execution would take around 700ms, in line with the other transformations.
+\textbf{The ``original'' case} executes the least squares method on 5 million points without any transformation. Table \ref{ildl:table:lslr} shows that, on average, as much as 1.1 GB of heap memory is reclaimed during the benchmark run, significantly slowing down the execution. If it was not for the in-benchmark GC pause, the execution would take around 700ms, in line with the other transformations.
 
 \noindent
 What we can also notice is that, across all benchmarks, the input data occupies around 700MB of heap space and is only collected at the end of the benchmark. A back-of-the-envelope calculation can confirm this: each linked list node takes 32 bytes (2-word header + 8-byte pointer to value + 8-byte pointer to the next cell) and contains a tuple of 48 bytes (2-word header + two 8-byte pointers and two 8-byte doubles, due to limitations in specialization), which itself contains 16 bytes per boxed double. Considering 5 million such nodes, we have: $(32 + 48 + 2 \times 16) * 5 \times 10^6 = 560 \times 10^6$, approximately 560MB of data.
@@ -233,7 +233,7 @@ The transformation description object is 50 LOC and requires 20 additional LOC t
   \end{tabularx}
 
   \caption{Sensor Readings and Hamming Numbers benchmark results.}
-  \label{table:sparkle}
+  \label{ildl:table:sparkle}
 
 \end{table*}
 

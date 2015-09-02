@@ -1,31 +1,31 @@
 \section{Miniboxing Transformation}
-\label{sec-mb-traf}
+\label{mbox:sec-mb-traf}
 
 \topic{The miniboxing transformation, which we developed as a Scala compiler plugin, builds upon specialization}, which has been formalized in \cite{iuli-thesis}. It has the same opportunistic and compatible nature and performs class and method duplication in a similar manner. Still, five elements set it apart:
 
 \begin{itemize}
-\item the different inheritance scheme (\S\ref{sec-mb-traf-inheritance})
-\item the type bytes for storing encoded types (\S\ref{sec-mb-traf-type-bytes}, \S\ref{sec-mb-traf-classes})
-\item the use of a shallow type transformation (\S\ref{sec-mb-traf-shallow})
-\item the use of the final peephole transformation (\S\ref{sec-mb-traf-peephole})
-\item the runtime support for miniboxed values (\S\ref{sec-mb-traf-runtime} and \S\ref{sec-runtime})
+\item the different inheritance scheme (\S\ref{mbox:sec-mb-traf-inheritance})
+\item the type bytes for storing encoded types (\S\ref{mbox:sec-mb-traf-type-bytes}, \S\ref{mbox:sec-mb-traf-classes})
+\item the use of a shallow type transformation (\S\ref{mbox:sec-mb-traf-shallow})
+\item the use of the final peephole transformation (\S\ref{mbox:sec-mb-traf-peephole})
+\item the runtime support for miniboxed values (\S\ref{mbox:sec-mb-traf-runtime} and \S\ref{mbox:sec-runtime})
 \end{itemize}
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.30\textwidth]{diags/mbox-multi.eps}
 
-    \caption{An example of miniboxed class inheritance. The suffixes are: M - miniboxed encoding and L - reference type. Compare to the specialized class inheritance in Figure \ref{fig-spec-multi}.}
-    \label{fig-mbox-multi}
+    \caption{An example of miniboxed class inheritance. The suffixes are: M - miniboxed encoding and L - reference type. Compare to the specialized class inheritance in Figure \ref{mbox:fig-spec-multi}.}
+    \label{mbox:fig-mbox-multi}
 \end{figure}
 
 
 \subsection{Inheritance}
-\label{sec-mb-traf-inheritance}
-\topic{Miniboxing uses a generic trait as the parent of the specialized classes, therefore} avoiding the limitation that miniboxed classes cannot  inherit from each other (\S\ref{subsec-spec-limits}). Figure \ref{fig-mbox-multi} shows an example miniboxed class inheritance. As explained in \S\ref{subsec-spec-limits}, for $n$ specialized type parameters, having a trait as the parent increases the bytecode size from $2^n$ to $4^n$, since each of the $2^n$ miniboxed variants needs to implement all $2^n$ methods. Still, the extra bytecode is well spent, for two reasons:
+\label{mbox:sec-mb-traf-inheritance}
+\topic{Miniboxing uses a generic trait as the parent of the specialized classes, therefore} avoiding the limitation that miniboxed classes cannot  inherit from each other (\S\ref{mbox:subsec-spec-limits}). Figure \ref{mbox:fig-mbox-multi} shows an example miniboxed class inheritance. As explained in \S\ref{mbox:subsec-spec-limits}, for $n$ specialized type parameters, having a trait as the parent increases the bytecode size from $2^n$ to $4^n$, since each of the $2^n$ miniboxed variants needs to implement all $2^n$ methods. Still, the extra bytecode is well spent, for two reasons:
 
 \begin{itemize}
- \item Having a trait at the top of the hierarchy means no generic fields are inherited in the specialized variants, as it happens when the homogeneous translation is at the top of the hierarchy (\S\ref{subsec-spec-limits});
+ \item Having a trait at the top of the hierarchy means no generic fields are inherited in the specialized variants, as it happens when the homogeneous translation is at the top of the hierarchy (\S\ref{mbox:subsec-spec-limits});
  \item This inheritance scheme allows specialized classes to inherit their specialized parent, thus achieving better performance in deep hierarchies.
 \end{itemize}
 
@@ -36,7 +36,7 @@ Since the types assigned to tree nodes do not reference the specialized variants
 This section will work its way from small examples to describing the new elements in the miniboxing transformation, as compared to specialization. In order to simplify the presentation, we will use the |Long|-based encoding for miniboxing, but the transformation can still be generalized to any number of storage types.
 
 \subsubsection*{Type Bytes}
-\label{sec-mb-traf-type-bytes}
+\label{mbox:sec-mb-traf-type-bytes}
 
 Type-encoding bytes (or type bytes for short) record the original type of the miniboxed values. Translating the following example shows when type bytes are necessary:
 
@@ -97,7 +97,7 @@ In the final step, the tree rewrite rules will transform the call to |MiniboxToB
 The next section will explain why it is necessary to carry the type parameter |T|.
 
 \subsubsection*{Shallow and Deep Type Transformations}
-\label{sec-mb-traf-shallow}
+\label{mbox:sec-mb-traf-shallow}
 
 To further understand the miniboxing transformation, let us look at a more complex example, which builds a linked list with a single element:
 
@@ -121,7 +121,7 @@ The return type is incorrect, as we expect |list(3)| to return a |ListNode[Int]|
 The shallow type transformation also changes types of local variables from |T| to |Long| and recursively transforms all nested methods and classes within the piece of code it is adapting. This propagates the storage type representation throughout the code.
 
 \subsubsection*{Peephole Transformation}
-\label{sec-mb-traf-peephole}
+\label{mbox:sec-mb-traf-peephole}
 
 The last transformation to touch the code before it is shipped to the next phase is the peephole transformation, which performs a final sweep over the code to remove redundant conversions. To show this phase at work, let us consider what happens if the |ListNode| class in the last example is also annotated for miniboxing. In this case, the class will have a miniboxed variant, |ListNode_M| to which the instantiation is rewired. Since the |head| parameter of the |ListNode| constructor is boxed, while the |head| parameter of the |ListNode_M| constructor is miniboxed, the transformation will introduce a new |BoxToMinibox| conversion:
 
@@ -140,7 +140,7 @@ Converting from |Long| to the boxed representation and back before creating the 
 The code produced by the rewiring phase can be optimized by a single pass of the peephole transformation so there is no need to iterate until a fixed point is reached.
 
 \subsubsection*{Type Bytes in Classes}
-\label{sec-mb-traf-classes}
+\label{mbox:sec-mb-traf-classes}
 
 The class translation is slightly more complex than method translation. For classes, type bytes are also included as fields in the miniboxed variants, to allow the class' methods to encode and decode miniboxed values as necessary: % An example is the translation for the |ListNode| class:
 
@@ -190,9 +190,9 @@ And the miniboxed variant of this class will be:
 All instantiations of |ListNode| where the type argument is statically known to be a value type are rewired to |ListNode_M|. The rest of the instantiations are rewired to |ListNode_L|, either because the type argument is not known statically or because it is known to be a reference type. Therefore, there is no reason for |ListNode_L| to carry |T_Type| as a global field. But, in order to allow |contains_M| to decode the miniboxed value |element| into a boxed form and redirect the call |contains|, a local type byte is necessary. Since the |ListNode| interface and its two implementations, |ListNode_L| and |ListNode_M| need to be compatible, the local type byte in |contains_M| is also present for |ListNode_M|, although in the miniboxed class it is redundant.
 
 \subsection{Calling the Runtime Support}
-\label{sec-mb-traf-runtime}
+\label{mbox:sec-mb-traf-runtime}
 
-The previous examples have shown how the miniboxing plugin uses the |MBRuntime| object for conversions between unboxed, miniboxed and boxed data representations. But the |MBRuntime| object is not limited to conversions. In Scala, any type parameter is assumed to be a subtype of the |Any| class, so the programmer can invoke methods such as |toString|, |hashCode| and |equals| on generic values. As shown in \S\ref{sec-mb-traf-type-bytes}, these calls can be translated by a conversion to the boxed representation followed by the call, but are further optimized by calling the implementations in |MBRuntime|, which work directly on miniboxed values.
+The previous examples have shown how the miniboxing plugin uses the |MBRuntime| object for conversions between unboxed, miniboxed and boxed data representations. But the |MBRuntime| object is not limited to conversions. In Scala, any type parameter is assumed to be a subtype of the |Any| class, so the programmer can invoke methods such as |toString|, |hashCode| and |equals| on generic values. As shown in \S\ref{mbox:sec-mb-traf-type-bytes}, these calls can be translated by a conversion to the boxed representation followed by the call, but are further optimized by calling the implementations in |MBRuntime|, which work directly on miniboxed values.
 
 Aside from conversions and implementations for the methods in the |Any| class, the miniboxing runtime support contains code to allow direct interaction between arrays and miniboxed values. An example that uses arrays is the |ArrayBuffer| class:
 

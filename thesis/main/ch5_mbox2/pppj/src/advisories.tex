@@ -1,6 +1,6 @@
 
 \section{Performance Advisories}
-\label{sec:advisories}
+\label{mbox2:sec:advisories}
 
 The previous section has shown that, when used globally, miniboxed generics provide two key invariants that ensure primitive values are always passed using the miniboxed (long integer) encoding:
 
@@ -131,7 +131,7 @@ When deciding which specialized variant of the miniboxed class |C| to use as cla
  \item the inverse mapping |VS| = \{|M|: miniboxed and |N|: erased $\rightarrow$ |C_M|, |M|: reference and |N|: erased $\rightarrow$ |C_L|\}
 \end{itemize}
 
-Now, applying the unification algorithm in Figure \ref{fig:algorithm} for the type parameter |F1| = |M| coupled with the type argument |T1| = |L|, it issues a forward warning followed by outputting (|M|: reference). Then, applying it to |F2| = |N| and |T2| = |Int|, it issues a backward warning and outputs (|N|: erased). From the two bindings, we obtain the specialized variant |C_L| to be a parent of |D|. Indeed, this is what happens in practice:
+Now, applying the unification algorithm in Figure \ref{mbox2:fig:algorithm} for the type parameter |F1| = |M| coupled with the type argument |T1| = |L|, it issues a forward warning followed by outputting (|M|: reference). Then, applying it to |F2| = |N| and |T2| = |Int|, it issues a backward warning and outputs (|N|: erased). From the two bindings, we obtain the specialized variant |C_L| to be a parent of |D|. Indeed, this is what happens in practice:
 
 \begin{lstlisting-nobreak-nolang}
 scala> class C[@miniboxed M, N]
@@ -155,7 +155,7 @@ res7: Class[_ >: D[_]] = class C_L
   \centering
   \includegraphics[height=0.91\textheight]{../graphs/warnings.pdf}
   \caption{The unification algorithm for picking the data representation of a type parameter.}
-  \label{fig:algorithm}
+  \label{mbox2:fig:algorithm}
 \end{figure}
 
 Now it is easy to guess where the forward and backward names come from: the direction in which the miniboxing transformation propagates between the type parameter and the type argument.
@@ -218,4 +218,4 @@ When deciding which miniboxed variant of class |C| to instantiate, we need to be
  res0: List[Int] = List(3)
 \end{lstlisting-nobreak-nolang}
 
-As we will see in the benchmarking section (\S\ref{sec:bench}), the performance advisories allow programmers who are not familiar with the transformation to make the same changes an expert would do.
+As we will see in the benchmarking section (\S\ref{mbox2:sec:bench}), the performance advisories allow programmers who are not familiar with the transformation to make the same changes an expert would do.

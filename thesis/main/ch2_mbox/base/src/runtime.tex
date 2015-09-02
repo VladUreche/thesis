@@ -1,5 +1,5 @@
 \section{Miniboxing Bulk Storage Optimization}
-\label{sec-runtime}
+\label{mbox:sec-runtime}
 
 Arrays are Java's bulk storage facility. They can store value types or references to heap objects. This is done efficiently, as values are stored one after the other in contiguous blocks of memory and access is done in constant time. Their characteristics make arrays good candidates for internal data structures in collections and algorithms.  
 
@@ -25,10 +25,10 @@ In order to stay compatible with Java, Scala code uses monomorphic arrays for ea
  }
 \end{lstlisting-nobreak}
 
-\topic{The most complicated and time-consuming part of our work involved rewriting the miniboxing runtime support to match the performance of specialized code.} The next subsections present the HotSpot Java Virtual Machine execution (\S\ref{subsec-mb-jvm}), the main benchmark we used for testing (\S\ref{subsec-mb-bench}) and two implementations for the runtime support: type byte switching (\S\ref{subsec-mb-switching}) and object-oriented dispatching (\S\ref{subsec-mb-dispatching}).
+\topic{The most complicated and time-consuming part of our work involved rewriting the miniboxing runtime support to match the performance of specialized code.} The next subsections present the HotSpot Java Virtual Machine execution (\S\ref{mbox:subsec-mb-jvm}), the main benchmark we used for testing (\S\ref{mbox:subsec-mb-bench}) and two implementations for the runtime support: type byte switching (\S\ref{mbox:subsec-mb-switching}) and object-oriented dispatching (\S\ref{mbox:subsec-mb-dispatching}).
 
 \subsection{HotSpot Execution}
-\label{subsec-mb-jvm}
+\label{mbox:subsec-mb-jvm}
 
 \topic{We used benchmarks to guide our implementation of the miniboxing runtime support.} In this section we will briefly present the just-in-time compilation and optimization me\-cha\-ni\-sms in the HotSpot Java Virtual Machine \cite{hotspot-c1, hotspot-c2}, since they directly influenced our design decisions. Although the work is based on the HotSpot Java Virtual Machine, we highlight the underlying mechanisms that interfere with miniboxing, in hope that our work can be used as the starting point for the a\-na\-ly\-sis on different virtual machines. % , with different heuristics and optimization mechanisms.
 
@@ -38,7 +38,7 @@ When inlining static calls, the code is inlined directly. For virtual and interf
 
 After inlining as much code as feasible, the virtual machine's just-in-time compiler applies optimizations, which significantly reduce the running time, especially for array operations which are very regular and for which bounds checks can be eliminated.
 \subsection{Benchmark}
-\label{subsec-mb-bench}
+\label{mbox:subsec-mb-bench}
 
 We benchmarked the performance on the two examples previously shown in the paper, |ListNode| and |ArrayBuffer|. Throughout benchmarking, one particular method stood out as the most sensitive to the runtime support implementation: the |reverse| method of the |ArrayBuffer| class. The rest of this section uses the |reverse| method to explore the performance of different implementations of the runtime support:   
 
@@ -77,24 +77,24 @@ specialized                             &             2.0 \optpm{0.6}&          
 monomorphic                             &             2.1 \optpm{0.6}&              N/A  \\
 \end{tabular}
 \caption{The time in milliseconds necessary for reversing an array buffer of 3 million integers. Performance varies based on how many value types have been used before (Single Context vs. Multi Context).}
-\label{tbl-mb-simple}
+\label{mbox:tbl-mb-simple}
 \end{table}
 
-The running times presented in table \ref{tbl-mb-simple} correspond to reversing an integer array buffer of 3 million elements. To put things into perspective, along with different designs, the table also provides running times for monomorphic code (specialized by hand), specialization-annotated code and generic code. Measurements are taken in two scenarios: For ``Single Context'', an array buffer of integers is created and populated and its |reverse| method is benchmarked. In ``Multi Context'', the array buffer is instantiated, populated and reversed for all primitive value types first. Then, a new array buffer of integers is created, populated and its |reverse| method is benchmarked. The HotSpot Java Virtual Machine optimizations are influenced by the historical paths executed in the program, so using other type arguments can have a drastic impact on performance, as can be seen from the table, where the times for ``Single Context'' and ``Multi Context'' are very different: this means the virtual machine gives up some of its optimizations after seeing multiple instantiations with different type arguments.  ``Multi Context'' is the likely scenario a library class will be in, as multiple instantiations with different type arguments may be created during execution.
+The running times presented in table \ref{mbox:tbl-mb-simple} correspond to reversing an integer array buffer of 3 million elements. To put things into perspective, along with different designs, the table also provides running times for monomorphic code (specialized by hand), specialization-annotated code and generic code. Measurements are taken in two scenarios: For ``Single Context'', an array buffer of integers is created and populated and its |reverse| method is benchmarked. In ``Multi Context'', the array buffer is instantiated, populated and reversed for all primitive value types first. Then, a new array buffer of integers is created, populated and its |reverse| method is benchmarked. The HotSpot Java Virtual Machine optimizations are influenced by the historical paths executed in the program, so using other type arguments can have a drastic impact on performance, as can be seen from the table, where the times for ``Single Context'' and ``Multi Context'' are very different: this means the virtual machine gives up some of its optimizations after seeing multiple instantiations with different type arguments.  ``Multi Context'' is the likely scenario a library class will be in, as multiple instantiations with different type arguments may be created during execution.
 
 \subsection{Type Byte Switching}
-\label{subsec-mb-switching}
+\label{mbox:subsec-mb-switching}
 
-\topic{The first approach we tried, the simple switch on the type byte, quickly revealed a problem: The array runtime support methods were too large for the just in time compiler to inline at runtime}. This corresponds to the ``miniboxing, no inlining'' in table \ref{tbl-mb-simple}. To solve this problem, we tasked the Scala compiler with inlining runtime support methods in its backend, independently of the virtual machine. But this was not enough: the |reverse_M| method calls |getElement_M| and |setElement_M|, which also became large after inlining the runtime support, and were not inlined by the virtual machine. This required us to recursively mark methods for inlining between the runtime support and the final benchmarked method.
+\topic{The first approach we tried, the simple switch on the type byte, quickly revealed a problem: The array runtime support methods were too large for the just in time compiler to inline at runtime}. This corresponds to the ``miniboxing, no inlining'' in table \ref{mbox:tbl-mb-simple}. To solve this problem, we tasked the Scala compiler with inlining runtime support methods in its backend, independently of the virtual machine. But this was not enough: the |reverse_M| method calls |getElement_M| and |setElement_M|, which also became large after inlining the runtime support, and were not inlined by the virtual machine. This required us to recursively mark methods for inlining between the runtime support and the final benchmarked method.
 
 \topic{The forced inlining in the Scala backend produced good results.} The measurement, corresponding to the ``miniboxed, full switch'' row in the table, shows miniboxed code working at almost the same speed as specialized and monomorphic code. This can be explained by the  loop unswitching optimization in the just-in-time compiler. With all the code inlined by the Scala backend, loop unswitching was able to hoist the type byte switch statement outside the while loop. It then duplicated the loop contents for each case in the switch, allowing array-specific optimizations to bring the running time close to monomorphic code.
 
 \topic{But using more primitive types as type arguments diminished the benefit.} We tested the |reverse| operation in two situations, to check if the optimizations still take place after we use it on array buffers with different type arguments. It is frequently the case that the HotSpot Java Virtual Machine will compile a method with aggressive assumptions about which paths the execution may take. For the branches that are not taken, guards are left in place. Then, if a guard is violated during execution, the native code is interrupted and the program continues in the interpreter. The method may be compiled again later, if it is executed enough times to warrant compilation to native code. Still, upon recompilation, the path that was initially compiled to a stub now becomes a legitimate path and may preclude some optimizations. We traced this problem to the floating point encoding, specifically the bit-exact conversion from floating point numbers to integers, that, once executed, prevents loop unswitching.     
 
-\topic{We tried different constructions for the miniboxing runtime support:} splitting the match into two parts and having an if expression that would select one or the other (``semi-switch''), transforming the switch into a decision tree (``decision tree'') and using a linear set of 9 if statements (``linear''), all of which appear in table \ref{tbl-mb-simple}. These new designs either degraded in the multiple context scenario, or provided a bad baseline performance from the beginning. What's more, the fact that the runtime ``remembered'' the type arguments a class was historically instantiated with made the translation unusable in practice, since this history is not only influenced by code explicitly called before the benchmark, but transitively by all code executed since the virtual machine started. % A different solution was necessary. 
+\topic{We tried different constructions for the miniboxing runtime support:} splitting the match into two parts and having an if expression that would select one or the other (``semi-switch''), transforming the switch into a decision tree (``decision tree'') and using a linear set of 9 if statements (``linear''), all of which appear in table \ref{mbox:tbl-mb-simple}. These new designs either degraded in the multiple context scenario, or provided a bad baseline performance from the beginning. What's more, the fact that the runtime ``remembered'' the type arguments a class was historically instantiated with made the translation unusable in practice, since this history is not only influenced by code explicitly called before the benchmark, but transitively by all code executed since the virtual machine started. % A different solution was necessary. 
 
 \subsection{Dispatching}
-\label{subsec-mb-dispatching}
+\label{mbox:subsec-mb-dispatching}
 
 \topic{The results obtained with type byte switching showed that we were committing to a type too late in the execution:} Forced inlining had to carry our large methods that covered all types inside the benchmarked method, where the optimizer had to hoist the switch outside the loop:
 
@@ -118,7 +118,7 @@ The running times presented in table \ref{tbl-mb-simple} correspond to reversing
  object IntDispatcher extends Dispatcher { ... }
 \end{lstlisting-nobreak}
 
-Dispatcher objects are passed to the miniboxed class during instantiation and have final semantics. In the |reverse| benchmark, this would replace the type byte switches by method invocations, which could be inlined. Dispatchers make forced inlining and loop unswitching redundant. With the final |dispatcher| field set at construction time, the |reverse_M| inner loop body can have array access inlined and optimized: (``miniboxed,  dispatcher'' in tables \ref{tbl-mb-simple} and \ref{tbl-mb-classloading})
+Dispatcher objects are passed to the miniboxed class during instantiation and have final semantics. In the |reverse| benchmark, this would replace the type byte switches by method invocations, which could be inlined. Dispatchers make forced inlining and loop unswitching redundant. With the final |dispatcher| field set at construction time, the |reverse_M| inner loop body can have array access inlined and optimized: (``miniboxed,  dispatcher'' in tables \ref{mbox:tbl-mb-simple} and \ref{mbox:tbl-mb-classloading})
 
 \begin{lstlisting-nobreak}
  // inlined getElement:
