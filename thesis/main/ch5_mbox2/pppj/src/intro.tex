@@ -1,39 +1,41 @@
 \section{Introduction}
 \label{mbox2:sec:intro}
 
-Generics on the Java platform are compiled using the erasure transformation \cite{java-erasure}, which allows them to be fully backward compatible with pre-generics bytecode. Unfortunately, this also means that they only handle by-reference values (objects) and not primitive types. Thus, primitive values such as bytes and integers have to be converted to heap objects each time they interact with generics. This conversion, known as boxing, compromises the execution performance and increases the heap footprint, forcing Java to lag behind lower-level languages such as C or C++.
+Generics on the Java platform are compiled using the erasure transformation \cite{java-erasure}, which allows them to be fully backward compatible with pre-generics bytecode. Unfortunately, this also means that they only handle by-reference values (objects) and not primitive types. Thus, primitive values such as bytes and integers have to be converted to heap objects each time they interact with generics. This conversion, known as boxing, compromises the execution performance and increases the heap footprint, forcing Java and JVM languages to lag behind lower-level languages such as C or C++.
 
-The performance drawbacks of erasure are currently being addressed in Project Valhalla\footnote{The Valhalla Project is still in its infancy, but early prototypes are openly available and the hard goals have been clearly defined in \cite{goetz-specialization, rose-value-classes-tearing, rose-value-classes-vm}.}, an important undertaking led by the Java platform architects and aimed at providing unboxed generics for Java and other JVM languages. The updated bytecode format in Project Valhalla will include the necessary type information to allow load-time class specialization, effectively creating different versions of classes that directly support primitive types. This load-time transformation approach is also employed by the .NET framework \cite{dot-net-generics,dot-net-generics-form} in order to implement generics.
+% The performance drawbacks of erasure are currently being addressed in Project Valhalla\footnote{The Valhalla Project is still in its infancy, but early prototypes are openly available and the hard goals have been clearly defined in \cite{goetz-specialization, rose-value-classes-tearing, rose-value-classes-vm}.}, an important undertaking led by the Java platform architects and aimed at providing unboxed generics for Java and other JVM languages. The updated bytecode format in Project Valhalla will include the necessary type information to allow load-time class specialization, effectively creating different versions of classes that directly support primitive types. This load-time transformation approach is also employed by the .NET framework \cite{dot-net-generics,dot-net-generics-form} in order to implement generics.
+%
+% Unlike .NET generics, which are always specialized, the current design of Project Valhalla, as of August 2015, makes it an explicit goal to have specialization as an opt-in transformation. This will allow the ecosystem to evolve smoothly from erased to specialized generics, allowing both erased and specialized classes to work side by side. However, in the current early prototype, there are still some restrictions: (1) erased code cannot handle specialized instances in a generic manner and, (2) abstracting over specialized classes using wildcard types \cite{valhalla-model2-announcement,valhalla-model2-implementation} pays the cost of boxing primitive types. This is shown in the following example:
+%
+% \begin{lstlisting-nobreak}
+% // The Box class is specialized by virtue of its type
+% // parameter T being annotated with the "any" prefix:
+% public class Box<`any` T> {
+%   ...
+%   T getValue() { ... }
+% }
+%
+% // The getBoxValue method is compiled with erasure
+% // since U is not marked with the "any" prefix:
+% static <U> U getBoxValue(Box<U> box) {
+%   return box.getValue();
+% }
+%
+% // (1) erased code cannot handle specialized class
+% //        instances (the code will not compile):
+% getBoxValue(`new Box<int>(5)`);
+%
+% // (2) abstracting over a specialized class leads to
+% //        boxing the value (any acts as a wildcard type):
+% Box<any> box = `new Box<int>(5)`;
+% System.out.println(`box.getValue()`); // boxes the value
+% \end{lstlisting-nobreak}
+%
+% These two code patterns could easily be rewritten to make the code compile and to avoid the overhead of boxing. For the first pattern, adding the |any| prefix to the type parameter |U| of method |getBoxValue| would make it specialized as well, allowing it to handle the incoming argument. In the second pattern, the wildcard, which is equivalent to extending |Box<?>| to value types, could be replaced by the exact type, |Box<int>|, eliminating the overhead of boxing. Yet, in the general case, not all code can be changed at will, due to interactions, backward compatibility or because it resides in external libraries. Thus, a better solution would be to have erased and specialized generics interoperate, ideally without the overhead.
 
-Unlike .NET generics, which are always specialized, the current design of Project Valhalla, as of August 2015, makes it an explicit goal to have specialization as an opt-in transformation. This will allow the ecosystem to evolve smoothly from erased to specialized generics, allowing both erased and specialized classes to work side by side. However, in the current early prototype, there are still some restrictions: (1) erased code cannot handle specialized instances in a generic manner and, (2) abstracting over specialized classes using wildcard types \cite{valhalla-model2-announcement,valhalla-model2-implementation} pays the cost of boxing primitive types. This is shown in the following example:
+A solution to avoid the boxing overhead is having different versions of a class or method for the primitive types, in a transformation called specialization. This allows instantiating the most specific class and calling the most specific method, in both cases avoiding the need for boxing primitive types. Specialization is currently being implemented in Java as part of Project Valhalla \cite{goetz-specialization, rose-value-classes-tearing, rose-value-classes-vm}.
 
-\begin{lstlisting-nobreak}
-// The Box class is specialized by virtue of its type
-// parameter T being annotated with the "any" prefix:
-public class Box<`any` T> {
-  ...
-  T getValue() { ... }
-}
-
-// The getBoxValue method is compiled with erasure
-// since U is not marked with the "any" prefix:
-static <U> U getBoxValue(Box<U> box) {
-  return box.getValue();
-}
-
-// (1) erased code cannot handle specialized class
-//        instances (the code will not compile):
-getBoxValue(`new Box<int>(5)`);
-
-// (2) abstracting over a specialized class leads to
-//        boxing the value (any acts as a wildcard type):
-Box<any> box = `new Box<int>(5)`;
-System.out.println(`box.getValue()`); // boxes the value
-\end{lstlisting-nobreak}
-
-These two code patterns could easily be rewritten to make the code compile and to avoid the overhead of boxing. For the first pattern, adding the |any| prefix to the type parameter |U| of method |getBoxValue| would make it specialized as well, allowing it to handle the incoming argument. In the second pattern, the wildcard, which is equivalent to extending |Box<?>| to value types, could be replaced by the exact type, |Box<int>|, eliminating the overhead of boxing. Yet, in the general case, not all code can be changed at will, due to interactions, backward compatibility or because it resides in external libraries. Thus, a better solution would be to have erased and specialized generics interoperate, ideally without the overhead.
-
-The Scala programming language, which also compiles to JVM bytecode, has had compile-time specialization for 6 years \cite{iuli-thesis, specialization-iuli} and currently has three mechanisms for compiling generics: erasure, specialization and a new arrival, miniboxing \cite{miniboxing}. In Scala, all three generics compilation schemes can be freely mixed:
+The Scala programming language, which compiles to JVM bytecode, has had compile-time specialization for 6 years \cite{iuli-thesis, specialization-iuli} and currently has three mechanisms for compiling generics: erasure, specialization and a new arrival, miniboxing \cite{miniboxing}. In Scala, all three generics compilation schemes can be freely mixed:
 
 \begin{lstlisting-nobreak}
 // The Mbox class is miniboxed by virtue of the type
@@ -53,7 +55,7 @@ val mbox: Mbox[_] = `new Mbox[Int](5)`
 println(`mbox.getValue()`)
 \end{lstlisting-nobreak}
 
-Despite the uniform behavior, Scala does pay a hefty price for being able to freely mix code using the three generics compilation schemes: calls between different compilation schemes require boxing primitive values. The reason is that only boxed primitive values are understood by all three transformations. Furthermore, as we will see later on, instantiating a miniboxed (or specialized) class from erased code leads to the erased version being instantiated instead of its miniboxed (or specialized) equivalent, in turn leading to unexpected performance regressions.
+Yet, despite the uniform behavior, Scala does pay a hefty price for being able to freely mix code using the three generics compilation schemes: calls between different compilation schemes require boxing primitive values. The reason is that only boxed primitive values are understood by all three transformations. Furthermore, as we will see later on, instantiating a miniboxed (or specialized) class from erased code leads to the erased version being instantiated instead of its miniboxed (or specialized) equivalent, in turn leading to unexpected performance regressions.
 
 In this paper, we show how we completely eliminate the unexpected slowdowns in the miniboxing transformation and, as a side effect, allow programmers to easily and robustly use miniboxing to speed up their programs. The underlying property we are after is that, inside hot loops and performance-sensitive parts of the program, all generic code uses the same compilation scheme, in this case, miniboxing. This way, primitive types are always passed using the same data representation, whether that's the miniboxed encoding (for miniboxing) or the unboxed representation (for specialization).
 
@@ -73,7 +75,7 @@ Another problem that occurs frequently concerns library evolution: as a new comp
 
 \textbf{Efficiently bridging the gap} between compilation schemes. In the case of miniboxing, which is a compiler plugin, we were not able to change the Scala standard library functions and tuples to use the miniboxing scheme. Instead, we describe the approaches we use to efficiently communicate to the existing library classes, and, where necessary, to replace them by miniboxed equivalents.
 
-With this, the paper makes four key contributions to the Java community and, in the general sense, to the field of compiling object-oriented languages with generics:
+With this, the chapter makes four key contributions to the field of compiling object-oriented languages with generics:
 
 \begin{itemize}
   \item Describing the problems involved in mixing different generics compilation schemes (\S\ref{mbox2:sec:minibox});

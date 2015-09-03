@@ -1,9 +1,9 @@
 \section{Compilation Schemes for Generics}
 \label{mbox2:sec:minibox}
 
-This section describes the different compilation schemes for generics in Scala. We mainly use Scala for the examples, but the discussion can be applied to Java as well. Differences between Scala specialization and Project Valhalla are pointed out along the way. %, with their implications.
+This section describes the different compilation schemes for generics in Scala.
 
-\subsection{Erasure in Scala}
+\subsection{Erasure}
 
 The current compilation scheme for generics in both Java and Scala is called erasure, and is the simplest compilation scheme possible for generics. Erasure requires all data, regardless of its type, to be passed in by reference, pointing to heap objects. Let us take a simple example, a generic |identity| method written in Scala:
 
@@ -12,7 +12,7 @@ The current compilation scheme for generics in both Java and Scala is called era
  val five = identity(5)
 \end{lstlisting-nobreak}
 
-When compiled, the bytecode for the method is\footnote{Throughout the paper, we show the source-equivalent of bytecode. The context clarifies whether we are showing source code or compiled bytecode.}:
+When compiled, the bytecode for the method is\footnote{Throughout the chapter, we show the source-equivalent of bytecode. The context clarifies whether we are showing source code or compiled bytecode.}:
 
 \begin{lstlisting-nobreak}
  def identity(t: `Object`): `Object` = t
@@ -105,105 +105,105 @@ So far, we have only looked at methods, but transforming classes poses even grea
 
 
 
-\subsection{Class Transformation in Project Valhalla}
+% \subsection{Class Transformation in Project Valhalla}
+%
+%
+%
+% Project Valhalla takes a straight-forward approach to specialization: classes are duplicated and all previous references to the type parameters are transformed. Given the linked list node class:
+%
+%
+%
+% \begin{lstlisting-nobreak}
+%  public class Node<`any` T> {
+%    T head;
+%    Node<T> tail;
+%
+%    public Node(T head, Node<T> tail) {
+%      this.head = head;
+%      this.tail = tail;
+%    }
+%
+%    // ... continued on the next page
+% \end{lstlisting-nobreak}
+%
+%
+%
+% \begin{lstlisting-nobreak}
+%    public T head() {
+%      return this.head;
+%    }
+%
+%    public Node<T> tail() {
+%      return this.tail;
+%    }
+%  }
+% \end{lstlisting-nobreak}
+%
+%
+%
+% When specializing the |Node| class for the |int| primitive type, Project Valhalla employs its custom classloader to clone and adapt the bytecode for class |Node|. Among other transformations, it replaces references to |T| by |int| \cite{goetz-specialization}:
 
 
-
-Project Valhalla takes a straight-forward approach to specialization: classes are duplicated and all previous references to the type parameters are transformed. Given the linked list node class:
-
-
-
-\begin{lstlisting-nobreak}
- public class Node<`any` T> {
-   T head;
-   Node<T> tail;
-
-   public Node(T head, Node<T> tail) {
-     this.head = head;
-     this.tail = tail;
-   }
-
-   // ... continued on the next page
-\end{lstlisting-nobreak}
-
-
-
-\begin{lstlisting-nobreak}
-   public T head() {
-     return this.head;
-   }
-
-   public Node<T> tail() {
-     return this.tail;
-   }
- }
-\end{lstlisting-nobreak}
-
-
-
-When specializing the |Node| class for the |int| primitive type, Project Valhalla employs its custom classloader to clone and adapt the bytecode for class |Node|. Among other transformations, it replaces references to |T| by |int| \cite{goetz-specialization}:
-
-
-
-\begin{lstlisting-nobreak}
- // Node_{T=int} corresponds to Node<int> in the code:
- public class Node_{T=int} implements Node_any {
-   int head;
-   Node_{T=int} tail;
-   public Node(int head, Node_{T=int} tail) {
-     this.head = head;
-     this.tail = tail;
-   }
-
-   public int head() {
-     return this.head;
-   }
-
-   public Node_{T=int} tail() {
-     return this.tail;
-   }
- }
-\end{lstlisting-nobreak}
-
-The load-time translation produces |Node_{T=int}|, which handles unboxed |int| values. The fact that |Node_{T=int}| is not a subclass of |Node| negatively impacts the interoperation with erasure. Let us take an example method, compiled with erasure:
-
-\begin{lstlisting-nobreak}
-static <U> U getNodeTail(Node<U> spec) {
-  return spec.tail();
-}
-\end{lstlisting-nobreak}
-
-The corresponding bytecode is:
-
-\begin{lstlisting-nobreak}
-static Object getNodeTail(Node spec) {
-  return spec.tail();
-}
-\end{lstlisting-nobreak}
-
-Since |Node_{T=int}| is not a subclass of |Node|, the |getNodeTail| method cannot handle specialized instantiations of |Node| as arguments, forcing the compiler to reject code patterns such as |getNodeTail(new Node<int>(...))|.
-% Therefore, the |getNodeTail| method cannot handle any of the specialized variants of class |Node|, which are not subclasses of |Node|. Therefore, calls such as
-This limits the interaction between erased and specialized generics and prevents many useful code patterns from being expressed. In turn, it prolongs the time necessary to adopt specialization: if a single generic library is compiled with erasure, its clients need to use erasure as well, otherwise they would not be able to use that library.
-
-Acknowledging the importance of allowing erased methods to handle specialized instances, a solution was later introduced: In the initial prototype, as of December 2014, the only common parent of classes |Node| and |Node_{T=int}| was |Object|. However, as of August 2015, the translation has been improved to automatically introduce the |Node_any| interface which serves as a common supertype of |Node| and its specializations (e.g. |Node_{T=int}|). Aside from simplifying the translation from JVM languages to Valhalla bytecode, this change also enables programmers to abstract over specialized classes:
-
-\begin{lstlisting-nobreak}
-// Node<any> acts as the Node<?> wildcard, except for
-// the fact that it also accepts specialized versions:
-`Node<any>` node = `new Node<int>(5, null)`;
-System.out.println(`node.getValue()`);
-\end{lstlisting-nobreak}
-
-This example is translated to the following bytecode:
-
-\begin{lstlisting-nobreak}
-`Node_any` node = `new Node_{T=int}(5, null)`;
-System.out.println(`node.getValue()`/* of type Object */)
-\end{lstlisting-nobreak}
-
-The |Node_any| interface is called an ``erased view'', since it enables accessing the specialized class in a uniform, erased-like manner. Since there is no mechanism to return either a reference or a primitive type (corresponding to the |any| wildcard), the call to |getValue()| boxes the value returned. Thus, the call introduces a silent performance regression, which is the cost of interoperability.
-
-The miniboxing translation allows erased, specialized and miniboxed code to freely interact, enabling both code patterns above, at the expense of adding even more boxing operations.
+%
+% \begin{lstlisting-nobreak}
+%  // Node_{T=int} corresponds to Node<int> in the code:
+%  public class Node_{T=int} implements Node_any {
+%    int head;
+%    Node_{T=int} tail;
+%    public Node(int head, Node_{T=int} tail) {
+%      this.head = head;
+%      this.tail = tail;
+%    }
+%
+%    public int head() {
+%      return this.head;
+%    }
+%
+%    public Node_{T=int} tail() {
+%      return this.tail;
+%    }
+%  }
+% \end{lstlisting-nobreak}
+%
+% The load-time translation produces |Node_{T=int}|, which handles unboxed |int| values. The fact that |Node_{T=int}| is not a subclass of |Node| negatively impacts the interoperation with erasure. Let us take an example method, compiled with erasure:
+%
+% \begin{lstlisting-nobreak}
+% static <U> U getNodeTail(Node<U> spec) {
+%   return spec.tail();
+% }
+% \end{lstlisting-nobreak}
+%
+% The corresponding bytecode is:
+%
+% \begin{lstlisting-nobreak}
+% static Object getNodeTail(Node spec) {
+%   return spec.tail();
+% }
+% \end{lstlisting-nobreak}
+%
+% Since |Node_{T=int}| is not a subclass of |Node|, the |getNodeTail| method cannot handle specialized instantiations of |Node| as arguments, forcing the compiler to reject code patterns such as |getNodeTail(new Node<int>(...))|.
+% % Therefore, the |getNodeTail| method cannot handle any of the specialized variants of class |Node|, which are not subclasses of |Node|. Therefore, calls such as
+% This limits the interaction between erased and specialized generics and prevents many useful code patterns from being expressed. In turn, it prolongs the time necessary to adopt specialization: if a single generic library is compiled with erasure, its clients need to use erasure as well, otherwise they would not be able to use that library.
+%
+% Acknowledging the importance of allowing erased methods to handle specialized instances, a solution was later introduced: In the initial prototype, as of December 2014, the only common parent of classes |Node| and |Node_{T=int}| was |Object|. However, as of August 2015, the translation has been improved to automatically introduce the |Node_any| interface which serves as a common supertype of |Node| and its specializations (e.g. |Node_{T=int}|). Aside from simplifying the translation from JVM languages to Valhalla bytecode, this change also enables programmers to abstract over specialized classes:
+%
+% \begin{lstlisting-nobreak}
+% // Node<any> acts as the Node<?> wildcard, except for
+% // the fact that it also accepts specialized versions:
+% `Node<any>` node = `new Node<int>(5, null)`;
+% System.out.println(`node.getValue()`);
+% \end{lstlisting-nobreak}
+%
+% This example is translated to the following bytecode:
+%
+% \begin{lstlisting-nobreak}
+% `Node_any` node = `new Node_{T=int}(5, null)`;
+% System.out.println(`node.getValue()`/* of type Object */)
+% \end{lstlisting-nobreak}
+%
+% The |Node_any| interface is called an ``erased view'', since it enables accessing the specialized class in a uniform, erased-like manner. Since there is no mechanism to return either a reference or a primitive type (corresponding to the |any| wildcard), the call to |getValue()| boxes the value returned. Thus, the call introduces a silent performance regression, which is the cost of interoperability.
+%
+% The miniboxing translation allows erased, specialized and miniboxed code to freely interact, enabling both code patterns above, at the expense of adding even more boxing operations.
 
 \subsection{Class Transformation in Miniboxing}
 
@@ -236,9 +236,7 @@ Given these constraints, miniboxing compiles |Node| to an interface:
 \begin{lstlisting-nobreak}
  interface Node {
    def head(): Object           // reference-based accessor
-   def head_M(...): long // specialized accessor, which
-                                // is not present in the
-                                // Valhalla translation
+   def head_M(...): long // specialized accessor
    def tail: Node[T]
  }
 \end{lstlisting-nobreak}
@@ -362,7 +360,7 @@ Which allows the erased generics to invalidate the invariants:
 
 This way, the call to |head_M| occurs on a |Node_L| instance. The symmetric case can also occur, calling |head| on a |Node_M| class. And, what is worse, we can end up with a |Node_L| class storing a primitive value, which means it will be boxed.
 
-Fortunately, by never promising more than the erased view, |Node|, the compilation scheme is robust enough to handle the mix-up. This allows correctly compiling both patterns in the Valhalla example:
+Fortunately, by never promising more than the erased view, |Node|, the compilation scheme is robust enough to handle the mix-up. This allows correctly compiling both cases of calls:
 
 \begin{lstlisting-nobreak}
  def getNodeTail[T](t: `Node[T]`): `Node[T]` = t.tail
@@ -380,5 +378,5 @@ By producing the following bytecode:
  node.tail() // call through the Node interface
 \end{lstlisting-nobreak}
 
-Comparing to Valhalla bytecode, the |Node| interface corresponds to Valhalla's |Node_any| interface, the ``erased view''. Yet, by replacing references to |Node[T]| by the erased view (instead of the |Node_L| class) miniboxing allows better interoperation.
+% Comparing to Valhalla bytecode, the |Node| interface corresponds to Valhalla's |Node_any| interface, the ``erased view''. Yet, by replacing references to |Node[T]| by the erased view (instead of the |Node_L| class) miniboxing allows better interoperation.
 
