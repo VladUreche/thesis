@@ -1,13 +1,13 @@
 \section{Miniboxing Bulk Storage Optimization}
 \label{mbox:sec-runtime}
 
-Arrays are Java's bulk storage facility. They can store value types or references to heap objects. This is done efficiently, as values are stored one after the other in contiguous blocks of memory and access is done in constant time. Their characteristics make arrays good candidates for internal data structures in collections and algorithms.  
+Arrays are Java's bulk storage facility. They can store value types or references to heap objects. This is done efficiently, as values are stored one after the other in contiguous blocks of memory and access is done in constant time. Their characteristics make arrays good candidates for internal data structures in collections and algorithms.
 
-But in order to implement compact storage and constant access overhead, arrays are monomorphic under the hood, with separate (and incompatible) variants for each of the primitive value types. What's more, each array type has its own specific bytecode instructions to manipulate it. 
+But in order to implement compact storage and constant access overhead, arrays are monomorphic under the hood, with separate (and incompatible) variants for each of the primitive value types. What's more, each array type has its own specific bytecode instructions to manipulate it.
 
 The goal we set forth was to match the performance of monomorphic arrays in the context of miniboxing-encoded values. To this end, we had two alternatives to implementing arrays for miniboxed values: use arrays of long integers to store the encoded values or use monomorphic arrays for each type, and encode or decode values at each access.
 
-\topic{Storing encoded values in arrays provides} the advantage of uniformity: all the code in the minibox-specialized class uses the |Long| representation and array access is done in a single instruction. Although this representation wastes heap space, especially for small value types such as boolean or byte, this is not the main drawback: it is incompatible with the rest of the Scala code. 
+\topic{Storing encoded values in arrays provides} the advantage of uniformity: all the code in the minibox-specialized class uses the |Long| representation and array access is done in a single instruction. Although this representation wastes heap space, especially for small value types such as boolean or byte, this is not the main drawback: it is incompatible with the rest of the Scala code.
 
 In order to stay compatible with Java, Scala code uses monomorphic arrays for each value type. Therefore arrays of long integers in miniboxed classes must not be allowed to escape from the transformed class, otherwise they may crash outside code attempting to read or write them. To maintain compatibility, we could convert escaping arrays to their monomorphic forms. But the conversion would introduce delays and would break aliasing, as writes from the outside code would not be visible in the miniboxed code and vice versa. Since completely prohibiting escaping arrays severely restricts the programs that can use miniboxing, this solution becomes unusable in practice.
 
@@ -15,9 +15,9 @@ In order to stay compatible with Java, Scala code uses monomorphic arrays for ea
 
 \begin{lstlisting-nobreak}
  def array_get[T](array: Array[T], idx: Int, tag: Byte): Minibox = tag match {
-   case INT =>     
+   case INT =>
      array.asInstanceOf[Array[Int]](idx).toLong
-   case LONG =>    
+   case LONG =>
      array.asInstanceOf[Array[Long]](idx)
    case DOUBLE =>  Double.doubleToRawLongBits(
      array.asInstanceOf[Array[Double]](idx)).toLong
@@ -40,7 +40,7 @@ After inlining as much code as feasible, the virtual machine's just-in-time comp
 \subsection{Benchmark}
 \label{mbox:subsec-mb-bench}
 
-We benchmarked the performance on the two examples previously shown before, |ListNode| and |ArrayBuffer|. Throughout benchmarking, one particular method stood out as the most sensitive to the runtime support implementation: the |reverse| method of the |ArrayBuffer| class. The rest of this section uses the |reverse| method to explore the performance of different implementations of the runtime support:   
+We benchmarked the performance on the two examples previously shown before, |ListNode| and |ArrayBuffer|. Throughout benchmarking, one particular method stood out as the most sensitive to the runtime support implementation: the |reverse| method of the |ArrayBuffer| class. The rest of this section uses the |reverse| method to explore the performance of different implementations of the runtime support:
 
 \begin{lstlisting-nobreak}
  def reverse_M(T_Type_local: Byte): Unit = {
@@ -60,7 +60,8 @@ We benchmarked the performance on the two examples previously shown before, |Lis
 %\newcommand{\optpm}[1]{\optpm{#1}
 \newcommand{\optpm}[1]{}
 
-\begin{table}[t]
+\begin{table}[t!]
+\centering
 \small
 \begin{tabular}{l|r|r}
                                         &   Single Context          & Multi Context          \\\hline
@@ -89,9 +90,9 @@ The running times presented in table \ref{mbox:tbl-mb-simple} correspond to reve
 
 \topic{The forced inlining in the Scala backend produced good results.} The measurement, corresponding to the ``miniboxed, full switch'' row in the table, shows miniboxed code working at almost the same speed as specialized and monomorphic code. This can be explained by the  loop unswitching optimization in the just-in-time compiler. With all the code inlined by the Scala backend, loop unswitching was able to hoist the type byte switch statement outside the while loop. It then duplicated the loop contents for each case in the switch, allowing array-specific optimizations to bring the running time close to monomorphic code.
 
-\topic{But using more primitive types as type arguments diminished the benefit.} We tested the |reverse| operation in two situations, to check if the optimizations still take place after we use it on array buffers with different type arguments. It is frequently the case that the HotSpot Java Virtual Machine will compile a method with aggressive assumptions about which paths the execution may take. For the branches that are not taken, guards are left in place. Then, if a guard is violated during execution, the native code is interrupted and the program continues in the interpreter. The method may be compiled again later, if it is executed enough times to warrant compilation to native code. Still, upon recompilation, the path that was initially compiled to a stub now becomes a legitimate path and may preclude some optimizations. We traced this problem to the floating point encoding, specifically the bit-exact conversion from floating point numbers to integers, that, once executed, prevents loop unswitching.     
+\topic{But using more primitive types as type arguments diminished the benefit.} We tested the |reverse| operation in two situations, to check if the optimizations still take place after we use it on array buffers with different type arguments. It is frequently the case that the HotSpot Java Virtual Machine will compile a method with aggressive assumptions about which paths the execution may take. For the branches that are not taken, guards are left in place. Then, if a guard is violated during execution, the native code is interrupted and the program continues in the interpreter. The method may be compiled again later, if it is executed enough times to warrant compilation to native code. Still, upon recompilation, the path that was initially compiled to a stub now becomes a legitimate path and may preclude some optimizations. We traced this problem to the floating point encoding, specifically the bit-exact conversion from floating point numbers to integers, that, once executed, prevents loop unswitching.
 
-\topic{We tried different constructions for the miniboxing runtime support:} splitting the match into two parts and having an if expression that would select one or the other (``semi-switch''), transforming the switch into a decision tree (``decision tree'') and using a linear set of 9 if statements (``linear''), all of which appear in table \ref{mbox:tbl-mb-simple}. These new designs either degraded in the multiple context scenario, or provided a bad baseline performance from the beginning. What's more, the fact that the runtime ``remembered'' the type arguments a class was historically instantiated with made the translation unusable in practice, since this history is not only influenced by code explicitly called before the benchmark, but transitively by all code executed since the virtual machine started. % A different solution was necessary. 
+\topic{We tried different constructions for the miniboxing runtime support:} splitting the match into two parts and having an if expression that would select one or the other (``semi-switch''), transforming the switch into a decision tree (``decision tree'') and using a linear set of 9 if statements (``linear''), all of which appear in table \ref{mbox:tbl-mb-simple}. These new designs either degraded in the multiple context scenario, or provided a bad baseline performance from the beginning. What's more, the fact that the runtime ``remembered'' the type arguments a class was historically instantiated with made the translation unusable in practice, since this history is not only influenced by code explicitly called before the benchmark, but transitively by all code executed since the virtual machine started. % A different solution was necessary.
 
 \subsection{Dispatching}
 \label{mbox:subsec-mb-dispatching}
@@ -114,7 +115,7 @@ The running times presented in table \ref{mbox:tbl-mb-simple} correspond to reve
    def array_get[T](arr: Array[T], idx: Int): Long
    def array_update[T](arr: Array[T], idx: Int, elt: Long): Unit
    ...
- } 
+ }
  object IntDispatcher extends Dispatcher { ... }
 \end{lstlisting-nobreak}
 
@@ -129,6 +130,6 @@ Dispatcher objects are passed to the miniboxed class during instantiation and ha
  dispatcher.array_update(...)
 \end{lstlisting-nobreak}
 
-\topic{Despite their clear advantages, in practice dispatchers can be used with at most two different value types.} This happens because the HotSpot Java Virtual Machine inlines the dispatcher code at the call site and installs guards that check the object's runtime type. The inline cache works for two receivers, but if we try to swap the dispatcher a third time, the callsite becomes megamorphic. In the megamorphic state, the |array_get| and |array_set| code is not inlined, hence the disappointing results for the ``Multi Context'' scenario.  
+\topic{Despite their clear advantages, in practice dispatchers can be used with at most two different value types.} This happens because the HotSpot Java Virtual Machine inlines the dispatcher code at the call site and installs guards that check the object's runtime type. The inline cache works for two receivers, but if we try to swap the dispatcher a third time, the callsite becomes megamorphic. In the megamorphic state, the |array_get| and |array_set| code is not inlined, hence the disappointing results for the ``Multi Context'' scenario.
 
 \topic{Interestingly, specialization performs equally well in both ``Single Context'' and ``Multi Context'' scenarios.} The explanation lies in the bytecode duplication: each specialized class contains a different body for the reverse method, and the profiles for each method do not interact. Accordingly, the results for integers are not influenced by the other value types used. This insight motivated the load-time cloning and specialization, which is described in the next section.
