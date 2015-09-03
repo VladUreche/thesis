@@ -63,7 +63,7 @@ Taking a low level perspective, we can observe the fact that all primitive types
  val five = identity(5)
 \end{lstlisting-nobreak}
 
-Is compiled\footnote{In the rest of the paper we assume the miniboxing Scala complier plugin is active unless otherwise noted. For more information on adding the miniboxing plugin to the build please see \url{http://scala-miniboxing.org}.} to the following bytecode:
+Is compiled\footnote{In the rest of the chapter we assume the miniboxing Scala complier plugin is active unless otherwise noted. For more information on adding the miniboxing plugin to the build please see \url{http://scala-miniboxing.org}.} to the following bytecode:
 
 \begin{lstlisting-nobreak}
  def identity(t: Object): Object = t

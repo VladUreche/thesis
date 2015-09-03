@@ -51,7 +51,7 @@ Since the ADR transformation is directly related to memory layout and, thus, to 
 
 
 \noindent
-For each benchmark, we broke down the transformation in several steps, which allowed us to quantify the exact contribution obtained by each transformation step. Unfortunately, due to space constraints, we cannot include the complete analysis in the paper. Interested readers can review it in the accompanying artifact or on the project website \cite{ildl-plugin-wiki}.
+For each benchmark, we broke down the transformation in several steps, which allowed us to quantify the exact contribution obtained by each transformation step. Unfortunately, due to space constraints, we cannot include the complete analysis here. Interested readers can review it in the accompanying artifact or on the project website \cite{ildl-plugin-wiki}.
 
 
 \noindent
@@ -85,7 +85,7 @@ All benchmarks are fully automated and use the |adrt| markers and transformation
 \end{table*}
 
 \subsubsection*{The Gaussian Greatest Common Divisor}
-is the running example described in \S\ref{ildl:sec:problem} and used throughout the paper. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{ildl:table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
+is the running example described in \S\ref{ildl:sec:problem} and used throughout the chapter. It is a numeric, CPU-bound benchmark, where the main slowdown is caused by heap allocations and GC cycles. We broke down the transformation into four steps, with the result shown in Table \ref{ildl:table:gcd}. None of the transformations triggered GC pauses during the measured runs, but they did produce different amounts of garbage objects:
 
 
 \noindent
@@ -105,7 +105,7 @@ case class Complex(_1: Int, _2: Int)
 
 
 \noindent
-\textbf{The ``unboxed'' transformation} is the one shown throughout the paper. It encodes Gaussian integers as |scala.Long| values, which are automatically unboxed by the Scala compiler backend. This brings a significant speedup to the benchmark, allowing execution to occur without any heap allocation, as explained in \S\ref{ildl:sec:ildl:method}. Compared to using pairs of integers, the speedup is almost 13x and the garbage is reduced by
+\textbf{The ``unboxed'' transformation} is the one shown throughout the chapter. It encodes Gaussian integers as |scala.Long| values, which are automatically unboxed by the Scala compiler backend. This brings a significant speedup to the benchmark, allowing execution to occur without any heap allocation, as explained in \S\ref{ildl:sec:ildl:method}. Compared to using pairs of integers, the speedup is almost 13x and the garbage is reduced by
 27x.
 
 

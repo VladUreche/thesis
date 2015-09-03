@@ -32,7 +32,7 @@ val j: Int = i
 val k: Any = j
 \end{lstlisting-nobreak}
 
-Since Scala compiles down to Java bytecode, during compilation, the LDL-based primitive unboxing transformation bridges the gap between the high-level |Int| concept and its two representations: the unboxed |int| and the boxed |java.lang.Integer| representation. Along the way, it introduces the necessary coercions between these two representations. For example, the code above is translated to:\footnote{The translations shown throughout the paper are Scala compiler abstract syntax tree (AST) dumps, in different stages of the compilation. To facilitate reading, we pretty-print the ASTs using Scala syntax. Sometimes we have to introduce elements that are not part of the Scala syntax, such as |int|.}
+Since Scala compiles down to Java bytecode, during compilation, the LDL-based primitive unboxing transformation bridges the gap between the high-level |Int| concept and its two representations: the unboxed |int| and the boxed |java.lang.Integer| representation. Along the way, it introduces the necessary coercions between these two representations. For example, the code above is translated to:\footnote{The translations shown throughout the chapter are Scala compiler abstract syntax tree (AST) dumps, in different stages of the compilation. To facilitate reading, we pretty-print the ASTs using Scala syntax. Sometimes we have to introduce elements that are not part of the Scala syntax, such as |int|.}
 
 \begin{lstlisting-nobreak}
 val i: `int` = 1

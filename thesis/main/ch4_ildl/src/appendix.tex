@@ -1,6 +1,6 @@
-\section*{Appendix}
+\section{Full Transformation Listing (Appendix)}
 
-In this appendix we give the signatures of the Gaussian Integer transformation object and walk through each step of the compilation. The complete source code can be found in the artifact distributed with the paper:
+In this appendix we give the signatures of the Gaussian Integer transformation object and walk through each step of the compilation. The complete source code can be found in the artifact distributed with the chapter:
 
 \begin{lstlisting-nobreak}
 package ildl.benchmark.gcd_minimal
@@ -18,7 +18,6 @@ object IntPairAsGaussianInt extends Transformation{
   def implicit_GaussianInt_%(n1: @high Long, n2: @high Long): @high Long = ...
   def implicit_GaussianInt_norm(n: @high Long): Int = ...
 }
-
 object GCD {
   implicit class GaussianInt(pair: (Int, Int)) {
     def %(that: (Int, Int)): (Int, Int) = ...

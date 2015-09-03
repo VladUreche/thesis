@@ -203,7 +203,7 @@ Is transformed into:
  List((1,2), (3,4), (5,6)).map(`function.functionX`)
 \end{lstlisting-nobreak}
 
-Explaining how the code transformation works is beyond the scope of this paper and has been thoroughly studied in previous literature \cite{ldl,ildl-tech}. The result is that, within miniboxed code, only the |MbFunctionX| representation is used. |FunctionX| is only referenced in a limited number of cases:
+The code transformation is based on the data-centric metaprogramming technique presented in Chapter \ref{chapter:ildl}. The result is that, within miniboxed code, only the |MbFunctionX| representation is used. |FunctionX| is only referenced in a limited number of cases:
 \begin{itemize}
   \item When miniboxed code needs to pass a function to pre-miniboxing code (which uses the |FunctionX| representation);
   \item When miniboxed code receives a function from pre-miniboxing code (using the |FunctionX| representation);
@@ -247,7 +247,7 @@ By transforming the function representation, we have eliminated the overhead of 
 \subsection{Arrays}
 \label{mbox2:sec:mbarrays}
 
-The array transformation \cite{romain-mbarrays} is beyond the scope of this paper, but we included it as a good example for using performance advisories.
+The array transformation \cite{romain-mbarrays} is beyond the scope of this chapter, but we included it as a good example for using performance advisories.
 
 The |Array| bulk storage in Scala makes certain assumptions that are not compatible with miniboxing, leading to performance regressions in some corner cases. To address this limitation, we introduced a new type of array, dubbed |MbArray|, which integrates very well within the miniboxing transformation. However, since the |MbArray| guarantees do not match the ones offered by Scala arrays, we cannot automate the transformation. Instead, we issue performance advisories to inform programmers about |MbArray|:
 

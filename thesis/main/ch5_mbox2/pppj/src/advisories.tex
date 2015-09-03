@@ -110,11 +110,19 @@ The one element common to all these cases is the need to pick the best matching 
 
 Let us now focus on a more formal definition.
 
+\begin{figure}[t!]
+  \vspace{0.01\textheight}
+  \centering
+  \includegraphics[height=0.91\textheight]{../graphs/warnings.pdf}
+  \caption{The unification algorithm for picking the data representation of a type parameter.}
+  \label{mbox2:fig:algorithm}
+\end{figure}
+
 \subsection{Unification: Formalization}
 
 Let us call the original method or class |O|, with the type parameters |F1| to |Fn| and |VO| the set of specialized variants corresponding to |O|. Each specialized variant |V|$\in$|VO| corresponds to a mapping from the type parameters to a representation in the set of \{miniboxed, reference, erased\}. Let us inverse this mapping, to produce another mapping from type parameters and representations to the specialized variants. Let's call it |VS|.
 
-Then the unification algorithm can be reduced to choosing the corresponding |V|$\in$|VO|, for a term of type |O[T1, .., Tn]|. This can be done following the algorithm in Figure 1.
+Then the unification algorithm can be reduced to choosing the corresponding |V|$\in$|VO|, for a term of type |O[T1, .., Tn]|. This can be done following the algorithm in Figure \ref{mbox2:fig:algorithm}.
 
 Let us take an example to illustrate this:
 
@@ -149,14 +157,6 @@ defined class D
 scala> classOf[D[_]].getSuperclass
 res7: Class[_ >: D[_]] = class C_L
 \end{lstlisting-nobreak-nolang}
-
-\begin{figure}[t!]
-  \vspace{0.01\textheight}
-  \centering
-  \includegraphics[height=0.91\textheight]{../graphs/warnings.pdf}
-  \caption{The unification algorithm for picking the data representation of a type parameter.}
-  \label{mbox2:fig:algorithm}
-\end{figure}
 
 Now it is easy to guess where the forward and backward names come from: the direction in which the miniboxing transformation propagates between the type parameter and the type argument.
 

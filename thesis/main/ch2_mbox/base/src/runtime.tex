@@ -40,7 +40,7 @@ After inlining as much code as feasible, the virtual machine's just-in-time comp
 \subsection{Benchmark}
 \label{mbox:subsec-mb-bench}
 
-We benchmarked the performance on the two examples previously shown in the paper, |ListNode| and |ArrayBuffer|. Throughout benchmarking, one particular method stood out as the most sensitive to the runtime support implementation: the |reverse| method of the |ArrayBuffer| class. The rest of this section uses the |reverse| method to explore the performance of different implementations of the runtime support:   
+We benchmarked the performance on the two examples previously shown before, |ListNode| and |ArrayBuffer|. Throughout benchmarking, one particular method stood out as the most sensitive to the runtime support implementation: the |reverse| method of the |ArrayBuffer| class. The rest of this section uses the |reverse| method to explore the performance of different implementations of the runtime support:   
 
 \begin{lstlisting-nobreak}
  def reverse_M(T_Type_local: Byte): Unit = {
