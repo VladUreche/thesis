@@ -7,11 +7,34 @@
 \chapter*{Abstract}
 %\markboth{Abstract}{Abstract}
 \addcontentsline{toc}{chapter}{Abstract} % adds an entry to the table of contents
-% put your text here
-\lipsum[1-2]
+
+\vspace{1em}
+
+To maximize flexibility, values in modern high-level programming languages are stored in memory as heap objects, making heavy use of refernces and dynamic dispatch. This prevents processor optimizations such as prefetching and caching and leads to indirect accesses, which require more work from the processor's side. In turn, this makes programs slow and inefficient. But the full flexibility of this model is rarely used in practice. For example, although it is possible, it is also rather uncommon for a set to store both integers and strings at the same time. However, if the language allows it, the set implementation should be prepared to handle whatever the programmer decides to store in it.
+
+\vspace{1em}
+
+Statically typed programming languages can bound the behavior of programs: based on types, it can be statically guaranteed that a set can only store a certain type of values, such as 32-bit integers. In such a case, it would be good to replace the flexible but inefficient set implementation by a more efficient one. However, such transformations are complex and can easily break the program semantics if not performed correctly.
+
+\vspace{1em}
+
+In this thesis we present Late Data Layout, a compile-time program transformation mechanism that allows swapping in better constructs for data storage in a selective, safe and optimal fashion. These key properties are derived from the fact that the transformation itself is guided using the type system. The object-oriented nature of a language, with inheritance and dynamic dispatch can pose complex challenges, but Late Data Layout was designed from the ground up to correctly handle object-oriented aspects of a language.
+
+\vspace{1em}
+
+We used the Late Data Layout mechanism as the foundation for two complex code transformations:
+
+\begin{itemize}
+  \item Miniboxing, a generics specialization scheme that improves performance by up to 20$\times$;
+  \item Data-centric metaprogramming, a system that allows programmers to devise better data representations themselves and instruct the compiler to use them, producing speedups of 24.5$\times$.
+\end{itemize}
+
+We conclude that the Late Data Layout mechanism can be easily extended to suit a wide range of transformations and provides consistent and optimal data representation transformations.
+
 \vskip0.5cm
 Key words:
-%put your text here
+Data Representation; Transformation; Object-Oriented; Static Type System; Performance; Generics; Specialization; Java; Java Virtual Machine; Bytecode; Safety; Semantics.
+
 
 
 % % German abstract
