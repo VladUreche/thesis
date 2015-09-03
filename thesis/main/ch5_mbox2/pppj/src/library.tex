@@ -52,11 +52,7 @@ With this in mind, our decision was to go with simplicity and symmetry: the brid
 
 \begin{lstlisting-nobreak-nolang}
 scala>  def mbox[@miniboxed T](t: T): String = spec(t)
-<console>:8: warning: Although the type parameter T of method spec is specialized, miniboxing and specialization communicate among themselves by boxing (thus, inefficiently) for all classes ...
-\end{lstlisting-nobreak-nolang}
-
-\begin{lstlisting-nobreak-nolang}
- ... other than FunctionX and TupleX. If you want to maximize performance, consider switching from specialization to miniboxing:
+<console>:8: warning: Although the type parameter T of method spec is specialized, miniboxing and specialization communicate among themselves by boxing (thus, inefficiently) for all classes other than FunctionX and TupleX. If you want to maximize performance, consider switching from specialization to miniboxing:
         def mbox[@miniboxed T](t: T): String = spec(t)
                                                             ^
 \end{lstlisting-nobreak-nolang}
@@ -198,15 +194,11 @@ Is transformed into:
      def apply(t1: Object, t2: Object) = ...
      val functionX: Function2 = ...
    }
-\end{lstlisting-nobreak}
-
-\begin{lstlisting-nobreak}
  def choice`_M`(T_Type: byte, seed: int): `MbFunction2` =
    new AbstractMbFunction2`_MM` {
      def apply_MM(..., t1: long, t2: long) = ...
      val functionX: Function2 = ...
    }
-
  val function: `MbFunction2` = choice_M(...)
  List((1,2), (3,4), (5,6)).map(`function.functionX`)
 \end{lstlisting-nobreak}

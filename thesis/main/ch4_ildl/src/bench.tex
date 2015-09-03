@@ -7,8 +7,6 @@ the setting of a library and its clients.
 
 We ran the benchmarks on an Intel |i7-4702HQ| quad-core processor machine with the frequency fixed at |2.2GHz|, and |2GB| of RAM, running the Oracle Java SE |1.7.0_80-b15| distribution on Ubuntu |14.04 LTS|. To avoid the noise caused by the just-in-time (JIT) compiler and garbage collection (GC) cycles, we measured the running times using the ScalaMeter benchmarking platform \cite{scalameter}, which warms up the Java Virtual Machine according to statistically rigorous performance evaluation guidelines \cite{rigorous-java-benchmarking}.
 
-\subsection{ADRT Micro-Benchmarks}
-
 Our benchmarking platform, ScalaMeter, executes micro-benchmarks using the following recipe:
 \begin{itemize}
   \item First, fork a new JVM;
@@ -252,9 +250,6 @@ adrt(BigIntToLong) {
         q3 enqueue n * 3
         q5 enqueue n * 5
       }
-\end{lstlisting-nobreak}
-
-\begin{lstlisting-nobreak}
       def next = {
         val n = q2.head min q3.head min q5.head
         if (q2.head == n) q2.dequeue
@@ -262,6 +257,9 @@ adrt(BigIntToLong) {
         if (q5.head == n) q5.dequeue
         enqueue(n); n
       }
+\end{lstlisting-nobreak}
+
+\begin{lstlisting-nobreak}
       def hasNext = true
       q2 enqueue 1
       q3 enqueue 1

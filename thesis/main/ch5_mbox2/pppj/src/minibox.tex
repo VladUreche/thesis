@@ -123,6 +123,12 @@ Project Valhalla takes a straight-forward approach to specialization: classes ar
      this.tail = tail;
    }
 
+   // ... continued on the next page
+\end{lstlisting-nobreak}
+
+
+
+\begin{lstlisting-nobreak}
    public T head() {
      return this.head;
    }
@@ -144,12 +150,6 @@ When specializing the |Node| class for the |int| primitive type, Project Valhall
  public class Node_{T=int} implements Node_any {
    int head;
    Node_{T=int} tail;
-   // ... continued on the next page
-\end{lstlisting-nobreak}
-
-
-
-\begin{lstlisting-nobreak}
    public Node(int head, Node_{T=int} tail) {
      this.head = head;
      this.tail = tail;

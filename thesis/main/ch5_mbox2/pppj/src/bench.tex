@@ -1,6 +1,6 @@
-\begin{table}[t]
+\begin{table}[t!]
   \centering
-  \begin{tabularx}{0.48\textwidth}{|g *{3}{|Y}|} \hline
+  \begin{tabularx}{0.98\textwidth}{|g *{3}{|Y}|} \hline
     \rowcolor{Gray}
     \textbf{Benchmark} & \textbf{Generic}      & \textbf{Miniboxed} \\  \hline
     Builder            &        161.61 s       &           53.56 s  \\
@@ -11,27 +11,6 @@
 
   \caption{RRB-Vector operations for 5M elements.}
   \label{mbox2:table:rrbvector}
-
-\end{table}
-
-\begin{table}[b]
-
-  \centering
-  \begin{tabularx}{0.48\textwidth}{|g *{3}{|Y}|} \hline
-    \rowcolor{Gray}
-    \textbf{Benchmark} & \textbf{Generic}      & \textbf{Miniboxed}     & \textbf{Miniboxed} \\
-    \rowcolor{Gray}    &                       &  some                  &  all               \\
-    \rowcolor{Gray}    &                       &  advisories            &  advisories        \\
-    \rowcolor{Gray}    &                       &  heeded                &  heeded            \\ \hline
-    1st run            &               4192 ms &               3082 ms &             1346 ms \\
-    2nd run            &               4957 ms &               2998 ms &             1187 ms \\
-    3rd run            &               4755 ms &               3017 ms &             1178 ms \\
-    4th run            &               3969 ms &               2535 ms &             1094 ms \\
-    5th run            &               4073 ms &               2615 ms &             1163 ms \\ \hline
-  \end{tabularx}
-
-  \caption{Speedups based on performance advisories, PNWScala}
-  \label{mbox2:table:pureimage}
 
 \end{table}
 
@@ -50,41 +29,13 @@ In this section we show three different scenarios where miniboxing has significa
 
 The original |RRB-Vector| implementation used erased generics. To show that performance advisories can indeed guide developers into improving performance, we asked a Scala developer who was not familiar with the |RRB-Vector| code base to switch the compilation scheme to miniboxing. Before handing in the code, we removed the parallel execution support \cite{rrb-vector-miniboxed-impl}, reducing the code base by 30\%. Then, the developer compiled the code with the miniboxing plugin, which produced 28 distinct warnings. These warnings guided the addition of |@miniboxed| annotations where necessary and the introduction of |MbArray| objects instead of Scala arrays. By following the performance advisories, in less than 30 minutes of work, our developer managed to improve the performance of the |RRB-Vector| operations by up to 3x. A counter-intuitive effect was that it took three rounds of compiling and addressing the warnings before the improvement was visible: each iteration introduced more |@miniboxed| annotations, in turn triggering new warnings, as new methods could benefit from the annotation.
 
-\begin{table}[t]
-  \begin{tabularx}{0.48\textwidth}{|g *{1}{|Y}|} \hline
-    \rowcolor{Gray}
-    \textbf{Transformation} & \textbf{Running time}  \\ \hline
-    Generic                        &              684.4 ms  \\
-    Miniboxed (no tuple support)   &              726.8 ms  \\
-    Miniboxed (with tuple support) &              323.2 ms  \\
-    Specialized                    &              322.5 ms  \\
-    Monomorphic                    &              318.1 ms  \\ \hline
-  \end{tabularx}
-
-  \caption{Sorting 1M tuples using quicksort.}
-  \label{mbox2:table:tuple}
-
-\end{table}
-
-
 Table \ref{mbox2:table:rrbvector} shows the performance improvements measured on four key operations of the |RRB-Vector|: creating the structure element by element using a builder and invoking bulk data operations: |map|, |fold| and |reverse|. The ScalaMeter framework \cite{scalameter} was used as a benchmarking harness on a quad-core Intel Core i7-4600U processor running at 2.10GHz with 12GB of RAM, on OpenJDK7. %The processor frequency was fixed during benchmarking.
 
 The numbers show speedups between 1.9 and 3x for the |builder|, |map| and |fold| benchmarks. This can be explained by the fact that, in the erased version, each element required at least a boxing operation, and thus a heap allocation. On the other hand, the |reverse| operation does not require any boxing so there is no speedup achieved. Nevertheless, introducing the miniboxing transformation does not lead to significant slowdowns.
 
 If we consider the |RRB-Vector| development time, which took four months of work and resulted in \textasciitilde3K lines of source code, the performance advisories issued by the miniboxing plugin allowed a new developer, with no knowledge of the code base, to deploy the miniboxing transformation in a negligible period of 30 minutes, producing speedups of up to 3x.
 
-
-
-\subsubsection*{Image processing.} Performance advisories can be used to improve the performance of Scala programs without any previous knowledge of how the transformation works. This was shown at the PNWScala 2014 developer conference \cite{pnwscala-conf}, where Vlad Ureche presented how the miniboxing plugin guides the programmer into improving the performance of a mock-up image processing library by as much as 4x \cite{pnwscala-pureimage}. The presentation was recorded and the performance numbers are included in Table \ref{mbox2:table:pureimage} for quick reference.
-
-
-
-\subsubsection*{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{mbox2:table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.
-
-\subsection{ADRT in Realistic Libraries}
-\label{mbox2:sec:benchmarks:funcs}
-
-\begin{table}[t]
+\begin{table}[t!]
   \begin{tabularx}{0.98\textwidth}{|g *{3}{|Y}|} \hline
     \rowcolor{Gray}
     \textbf{Benchmark} & \textbf{Generic} & \textbf{Miniboxed}& \textbf{Miniboxed} \\
@@ -98,44 +49,6 @@ If we consider the |RRB-Vector| development time, which took four months of work
 
   \caption{Scala Streams pipelines for 10M elements.}
   \label{mbox2:table:streams}
-
-\end{table}
-
-The |adrt| scoped transformation is a conceptual generalization of a mechanism
-motivated by library transformation scenarios. In particular, the
-resulting data representation transformation is used in conjunction
-with the miniboxing transformation \cite{miniboxing-www, miniboxing},
-in order to replace standard library \emph{functions} and \emph{tuples}
-by custom, optimized versions adequate for miniboxed code \cite{miniboxing-pppj}.
-The scope of this data representation transformation is miniboxing-transformed code.
-
-The miniboxing transformation \cite{miniboxing} proposes an alternative to erasure, allowing generic methods and classes to work efficiently with unboxed primitive types. Unlike the current specialization transformation in the Scala compiler \cite{iuli-thesis}, which duplicates and adapts the generic code once for every primitive type, the miniboxing transformation only duplicates the code once and \emph{encodes all primitive types in long integers}. This allows miniboxing to scale much better than specialization \cite{miniboxing-linkedlist} in terms of bytecode size while providing comparable performance. Yet, one of the main drawbacks of using the miniboxing plugin is that all Scala library classes are either generic or specialized with the built-in Scala specialization scheme, which is not compatible with miniboxing. Therefore, interacting with functions and tuples from miniboxed code incurs significant overhead.
-
-Consider, for example, functions. (Tuples raise similar issues.) Scala offers functions as first-class citizens. However, since functions are not first-class citizens in the Java Virtual Machine bytecode, the Scala compiler desugars them to anonymous classes extending a functional interface. The following example shows the desugaring of function |(x: Int) => x + 1|:
-
-\begin{lstlisting-nobreak}
-class $anon extends Function1[Int, Int] {
-  def apply(x: Int): Int = x + 1
-}
-new $anon()
-\end{lstlisting-nobreak}
-
-This function desugaring does not expose a version of the |apply| method that encodes the primitive type as a long integer, as the miniboxing transformation expects. Therefore, when programmers write miniboxed code that uses functions, they have two choices: either accept the slowdown caused by converting the representation or define their own miniboxed |Function1| class, and perform the function desugaring by hand. Neither of these is a good solution.
-
-Our data representation transformation converts the references to |Function1| in miniboxed code to the optimized |MiniboxedFunction1|, which allows calls to use the miniboxed representation, thus being more efficient. The problem is that the miniboxed code needs to interoperate with library-defined code, or with other libraries that were not transformed. Thus, the miniboxed code acts as a scope for the \emph{function and tuple representation transformation}, i.e., the ADR transformation of |Function| and |Tuple|. This transformation has a significant impact in library benchmarks.
-
-\begin{table}[t]
-  \begin{tabularx}{0.98\textwidth}{|g *{1}{|Y}|} \hline
-    \rowcolor{Gray}
-    \textbf{Benchmark}             &  \textbf{Running time} \\ \hline
-    Manual C-like code             &         0.650 $\mu$s \\
-    Miniboxing with functions      &         0.705 $\mu$s \\
-    Miniboxing without functions   &         3.080 $\mu$s \\
-    Generic                        &        13.409 $\mu$s \\ \hline
-  \end{tabularx}
-
-  \caption{Mapping a 1K vector.}
-  \label{mbox2:table:framian}
 
 \end{table}
 
@@ -155,4 +68,61 @@ speedup relative to the miniboxed code without the function
 representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the llama's ass!}
 
 
+\begin{table}[t!]
+  \begin{tabularx}{0.98\textwidth}{|g *{1}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark}             &  \textbf{Running time} \\ \hline
+    Manual C-like code             &         0.650 $\mu$s \\
+    Miniboxing with functions      &         0.705 $\mu$s \\
+    Miniboxing without functions   &         3.080 $\mu$s \\
+    Generic                        &        13.409 $\mu$s \\ \hline
+  \end{tabularx}
+
+  \caption{Mapping a 1K vector.}
+  \label{mbox2:table:framian}
+
+\end{table}
+
 \subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{mbox2:table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
+
+
+\begin{table}[b!]
+
+  \centering
+  \begin{tabularx}{0.98\textwidth}{|g *{3}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Benchmark} & \textbf{Generic}      & \textbf{Miniboxed}     & \textbf{Miniboxed} \\
+    \rowcolor{Gray}    &                       &  some                  &  all               \\
+    \rowcolor{Gray}    &                       &  advisories            &  advisories        \\
+    \rowcolor{Gray}    &                       &  heeded                &  heeded            \\ \hline
+    1st run            &               4192 ms &               3082 ms &             1346 ms \\
+    2nd run            &               4957 ms &               2998 ms &             1187 ms \\
+    3rd run            &               4755 ms &               3017 ms &             1178 ms \\
+    4th run            &               3969 ms &               2535 ms &             1094 ms \\
+    5th run            &               4073 ms &               2615 ms &             1163 ms \\ \hline
+  \end{tabularx}
+
+  \caption{Speedups based on performance advisories, PNWScala}
+  \label{mbox2:table:pureimage}
+
+\end{table}
+
+\subsubsection*{Image processing.} Performance advisories can be used to improve the performance of Scala programs without any previous knowledge of how the transformation works. This was shown at the PNWScala 2014 developer conference \cite{pnwscala-conf}, where Vlad Ureche presented how the miniboxing plugin guides the programmer into improving the performance of a mock-up image processing library by as much as 4x \cite{pnwscala-pureimage}. The presentation was recorded and the performance numbers are included in Table \ref{mbox2:table:pureimage} for quick reference.
+
+\begin{table}[t!]
+  \begin{tabularx}{0.98\textwidth}{|g *{1}{|Y}|} \hline
+    \rowcolor{Gray}
+    \textbf{Transformation} & \textbf{Running time}  \\ \hline
+    Generic                        &              684.4 ms  \\
+    Miniboxed (no tuple support)   &              726.8 ms  \\
+    Miniboxed (with tuple support) &              323.2 ms  \\
+    Specialized                    &              322.5 ms  \\
+    Monomorphic                    &              318.1 ms  \\ \hline
+  \end{tabularx}
+
+  \caption{Sorting 1M tuples using quicksort.}
+  \label{mbox2:table:tuple}
+
+\end{table}
+
+\subsubsection*{Tuple accessors} have been tested by implementing a tuple sorting benchmark using a generic quicksort algorithm. Table \ref{mbox2:table:tuple} shows the results for sorting 1 million tuples based on their first element. We used different transformations for the generic quicksort algorithm: first, we benchmarked the erased generics performance, which, as expected, were slow. Surprisingly, the miniboxed version without tuple support was even worse, 7\% slower than erased generics. Then, adding tuple accessor support to the miniboxing transformation improved the performance by 2x, making it comparable to the original specialization transformation and to the monomorphic (non-generic, hand specialized) version of the quicksort algorithm.
