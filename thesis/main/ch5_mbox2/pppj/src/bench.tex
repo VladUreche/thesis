@@ -65,9 +65,9 @@ Compared to the original library, the application of miniboxing and
 data representation optimization for functions achieves a very high
 speedup---up to 11x for the SumOfSquares benchmark. In fact, the
 speedup relative to the miniboxed code without the function
-representation optimization is nearly 16x! \iv{Miniboxing -- it really whips the llama's ass!}
+representation optimization is nearly 16x!
 
-\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{mbox2:table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code. \iv{Erm, no, that was Winamp with the llama, not miniboxing...}
+\subsubsection*{The Framian Vector implementation} is an exploration into deeply specializing the immutable |Vector| bulk storage without using reified types \cite{tixxit-respecialization15,tixxit-respecialization6}. This is a benchmark created by a third party (a commercial entity using Scala). Table \ref{mbox2:table:framian} shows a 4.4x speed improvement when the function representation is optimized and shows that the ADR-transformed function code performs within 10\% of the fully specialized and manually optimized code.
 
 
 \begin{table}[b!]

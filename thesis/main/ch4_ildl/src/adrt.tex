@@ -562,4 +562,4 @@ println(a)
 
 This resulting code breaks semantics because no coercion is applied to |a|, since |Long| is a subtype of |Any|. In turn, the output becomes |4294967296| instead of |(1, 0)|. As we saw in \S\ref{ildl:sec:drt}, the missing coercion is correctly inserted when annotations track the value representation, since annotations are orthogonal to the host language type system.
 
-With this, we presented the Ad hoc Data Representation Transformation mechanism and how it interacts with other language features to guarantee transformation correctness. The next section describes the architecture and implementation of our Scala compiler plugin. \iv{Hey, is this thing on?}
+With this, we presented the Ad hoc Data Representation Transformation mechanism and how it interacts with other language features to guarantee transformation correctness. The next section describes the architecture and implementation of our Scala compiler plugin.
