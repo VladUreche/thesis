@@ -81,27 +81,27 @@ List construction builds a 3 million element linked list using |ListNode| instan
 \begin{table}[t!]
 \centering
 \footnotesize
-\begin{tabularx}{\textwidth}{l|Y|Y|Y|Y|Y|Y}
-                  & \multicolumn{2}{c|}{\texttt{ArrayBuffer.append}} & \multicolumn{2}{c|}{\texttt{ArrayBuffer.reverse}} & \multicolumn{2}{c}{\texttt{ArrayBuffer.contains}} \\\hline
+\begin{tabularx}{\textwidth}{l| *{6}{|Y}}
+                  & \multicolumn{2}{c|}{\scriptsize \texttt{ArrayBuffer.append}} & \multicolumn{2}{c|}{\scriptsize \texttt{ArrayBuffer.reverse}} & \multicolumn{2}{c}{\scriptsize\texttt{ArrayBuffer.contains}} \\\hline
                   & \sctx            & \mctx            & \sctx            & \mctx            & \sctx                & \mctx            \\\hline
 generic           & 50.1 \optpm{1.2} & 48.0 \optpm{0.9} & 20.4 \optpm{3.8} & 21.5 \optpm{2.3} & 1580.1 \optpm{ 12.0} &  3628.8 \optpm{ 40.2} \\
 \opt{mb. switch        & 30.9 \optpm{2.0} & 35.5 \optpm{2.4} &  2.5 \optpm{0.5} & 15.1 \optpm{3.5} &  161.5 \optpm{  3.4} &   554.3 \optpm{  3.2} \\}
 \opt{mb. dispatch      & 16.5 \optpm{1.3} & 58.2 \optpm{3.0} &  2.1 \optpm{0.6} & 26.5 \optpm{1.9} &  160.7 \optpm{  3.0} &  2551.6 \optpm{ 33.1} \\}
-% \rowcolor{Gray}
+\rowcolor{Gray}
 \bn{mb. switch + LS}   & \bn{15.6} \optpm{1.8} & \bn{14.8} \optpm{1.5} &  \bn{2.5} \optpm{0.5} &  \bn{2.4} \optpm{0.5} &  \bn{159.9} \optpm{  3.2} &   \bn{161.7} \optpm{  3.4} \\
-% \rowcolor{Gray}
+\rowcolor{Gray}
 \bn{mb. dispatch + LS} & \bn{15.1} \optpm{0.9} & \bn{15.9} \optpm{1.5} &  \bn{2.0} \optpm{0.6} &  \bn{2.7} \optpm{0.1} &  \bn{161.8} \optpm{  2.2} &   \bn{161.3} \optpm{  2.8} \\
 specialization    & 39.7 \optpm{3.0} & 38.5 \optpm{3.0} &  2.0 \optpm{0.6} &  2.4 \optpm{0.5} &  155.8 \optpm{  2.6} &   156.3 \optpm{  3.4} \\
 monomorphic       & 16.2 \optpm{1.0} & N/A           &  2.1 \optpm{0.6} & N/A           &  157.7 \optpm{  4.1} &                N/A \\[0.1em]
 
-                  & \multicolumn{2}{c|}{\texttt{List} creation} & \multicolumn{2}{c|}{\texttt{List.hashCode}} & \multicolumn{2}{c}{\texttt{List.contains}} \\\hline
+                  & \multicolumn{2}{c|}{{\scriptsize \texttt{List}} creation} & \multicolumn{2}{c|}{\scriptsize \texttt{List.hashCode}} & \multicolumn{2}{c}{\scriptsize \texttt{List.contains}} \\\hline
                   & \sctx            & \mctx            & \sctx            & \mctx            & \sctx                & \mctx            \\\hline
 generic           & 16.7 \optpm{   0.2} & 1841 \optpm{ 1068} & 22.1 \optpm{1.9} & 20.4 \optpm{0.8} & 1739.5 \optpm{ 4.9} & 2472.4 \optpm{49.0} \\
 \opt{mb. switch        & 11.4 \optpm{   0.1} &  11.7 \optpm{   0.6} & 18.3 \optpm{2.2} & 18.8 \optpm{2.2} & 1438.2 \optpm{17.5} & 1443.2 \optpm{21.8} \\}
 \opt{mb. dispatch      & 11.4 \optpm{   0.1} &  11.5 \optpm{   0.4} & 15.6 \optpm{1.8} & 21.0 \optpm{1.9} & 1369.1 \optpm{ 8.0} & 1753.2 \optpm{16.9} \\}
-% \rowcolor{Gray}
+\rowcolor{Gray}
 \bn{mb. switch + LS}   & \bn{11.5} \optpm{   0.6} &  \bn{11.6} \optpm{   0.5} & \bn{16.2} \optpm{2.4} & \bn{16.1} \optpm{2.2} & \bn{1434.9} \optpm{20.4} & \bn{1446.3} \optpm{19.6} \\
-% \rowcolor{Gray}
+\rowcolor{Gray}
 \bn{mb. dispatch + LS} & \bn{12.1} \optpm{   0.5} &  \bn{12.7} \optpm{   1.9} & \bn{16.1} \optpm{2.1} & \bn{15.3} \optpm{1.7} & \bn{1364.2} \optpm{ 7.8} & \bn{1325.9} \optpm{44.4} \\
 specialization    & 11.4 \optpm{   0.1} &  11.4 \optpm{   0.2} & 14.5 \optpm{1.4} & 36.4 \optpm{2.5} & 1341.0 \optpm{37.8} & 1359.2 \optpm{23.4} \\
 monomorphic       & 10.2 \optpm{   1.2} &                 N/A  & 13.3 \optpm{0.8} & N/A              & 1172.0 \optpm{ 3.4} & N/A                 \\
@@ -264,8 +264,9 @@ However a hidden overhead is also present, consisting of the internal class repr
 \begin{table*}[t!]
 \centering
 \footnotesize
-\begin{tabularx}{\textwidth}{l|Y|Y|Y|Y|Y|Y}
-                       & \multicolumn{2}{c|}{\texttt{ArrayBuffer.append}} & \multicolumn{2}{c|}{\texttt{ArrayBuffer.reverse}} & \multicolumn{2}{c}{\texttt{ArrayBuffer.contains}} \\\hline
+
+\begin{tabularx}{\textwidth}{l| *{6}{|Y}}
+                  & \multicolumn{2}{c|}{\scriptsize \texttt{ArrayBuffer.append}} & \multicolumn{2}{c|}{\scriptsize \texttt{ArrayBuffer.reverse}} & \multicolumn{2}{c}{\scriptsize\texttt{ArrayBuffer.contains}} \\\hline
                        & \sctx            & \mctx            & \sctx            & \mctx            & \sctx                & \mctx            \\\hline
 generic                & 78.3 \optpm{12.6}& 52.3 \optpm{2.2} &  3.2 \optpm{1.0} & 20.3 \optpm{1.8} &  607.6 \optpm{  0.6} &  3146.1 \optpm{  4.8} \\
 \opt{mb. switch        & 27.6 \optpm{13.8}&         $\times$ &  7.4 \optpm{1.5} &         $\times$ &  844.4 \optpm{  1.0} &              $\times$ \\}
@@ -277,7 +278,7 @@ generic                & 78.3 \optpm{12.6}& 52.3 \optpm{2.2} &  3.2 \optpm{1.0} 
 specialization         & 21.7 \optpm{8.3} & 13.4 \optpm{2.1} &  3.5 \optpm{0.7} &  2.7 \optpm{0.8} &  488.7 \optpm{  0.9} &   489.4 \optpm{  2.5} \\
 monomorphic            & 19.8 \optpm{5.9} & N/A           &  3.1 \optpm{0.5} & N/A           &  490.4 \optpm{  3.0} &                N/A \\[0.1em]
 
-                       & \multicolumn{2}{c|}{\texttt{List} creation} & \multicolumn{2}{c|}{\texttt{List.hashCode}} & \multicolumn{2}{c}{\texttt{List.contains}} \\\hline
+                  & \multicolumn{2}{c|}{{\scriptsize \texttt{List}} creation} & \multicolumn{2}{c|}{\scriptsize \texttt{List.hashCode}} & \multicolumn{2}{c}{\scriptsize \texttt{List.contains}} \\\hline
                        & \sctx            & \mctx            & \sctx            & \mctx            & \sctx                & \mctx            \\\hline
 generic                & 32.6 \optpm{   7.5} &  23.3 \optpm{ 1.5} & 13.4 \optpm{1.7} & 13.6 \optpm{1.2} & 1846.5 \optpm{ 4.9} & 2168.1 \optpm{4.0} \\
 \opt{mb. switch        & 23.7 \optpm{   1.2} &  18.0 \optpm{ 0.4} & 11.7 \optpm{1.0} & 10.9 \optpm{0.4} & 1420.8 \optpm{15.3} & 1421.5 \optpm{16.0} \\}
