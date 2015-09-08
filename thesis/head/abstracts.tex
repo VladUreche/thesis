@@ -10,7 +10,7 @@
 
 \vspace{1em}
 
-To maximize flexibility, values in modern high-level programming languages are stored in memory as heap objects, making heavy use of refernces and dynamic dispatch. This prevents processor optimizations such as prefetching and caching and leads to indirect accesses, which require more work from the processor's side. In turn, this makes programs slow and inefficient. But the full flexibility of this model is rarely used in practice. For example, although it is possible, it is also rather uncommon for a set to store both integers and strings at the same time. However, if the language allows it, the set implementation should be prepared to handle whatever the programmer decides to store in it.
+Software written in high-level programming languages routinely represents data using memory-allocated objects. This increases flexibility and allows very good abstraction, at the expense of making heavy use of references and dynamic dispatch. In turn, this prevents processor optimizations such as prefetching and caching and leads to indirect accesses, which require more work from the processor's side. What the final user this makes programs slow and inefficient. But the full flexibility of this model is rarely used in practice. For example, although it is possible, it is also rather uncommon for a set to store both integers and strings at the same time. However, if the language allows it, the set implementation should be prepared to handle whatever the programmer decides to store in it.
 
 \vspace{1em}
 
