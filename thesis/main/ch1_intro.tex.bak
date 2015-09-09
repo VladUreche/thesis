@@ -1,0 +1,251 @@
+\chapter{Introduction}
+
+A computer's processor is an amazing device: it executes millions of instructions each second, at a speed difficult to comprehend. Yet each instruction is very simple and operates on precise data types: read 64 bits from memory address X into register R1, subtract R1 from R2 using unsigned 64-bit integer semantics, etc. For the processor, data is made up of bits and each instruction needs to know the exact size and semantics of its operands, information which allows the processor to decide which logic gates to activate.
+
+On the opposite side of the spectrum, people think in terms of very high-level goals, such as summing up the elements contained in a list. In this high-level goal, there is no mention of what type of elements are contained in the list (integers, floating-point numbers, something else...) or the size and semantics of the result. There are two steps to bridge the gap between a high-level goal and the precise low-level machine instructions necessary to implement it: Programming languages allow people to express their intent while compilers and interpreters translate this intent, written in the source code, to precise low-level machine instructions.
+
+High-level languages such as Python, Scala, Ruby and JavaScript gloss over many implementation details to allow programmers to directly express high-level goals. For example, the following code written in Python sums up a list of numbers:
+
+\begin{lstlisting-nobreak}
+ >>> list = [1, 2, 3, 4, 5, `6.0`]
+ >>> print `sum(list)`
+ 21.0
+\end{lstlisting-nobreak}
+
+Notice the non-uniform nature of the list: the first five elements are integers while the last is a floating-point number. To allow such code to run, the elements in the list are stored using a uniform representation: each element is a heap-allocated object, with type information attached. Then, to execute the |sum| operation, at each step the next element is inspected and the correct operation is performed based on its type. In this case, the first five additions use integer semantics, followed by a floating-point number addition. % Furthermore, Python automatically adjusts the bit width of integer numbers so operations never overflow. This protects the programmer from the risk of overflows.
+
+Flexibility and abstraction ease programming, but they come at the cost of performance. High-level constructs require long sequences of machine instructions, where data is stored inside heap-allocated objects and operations are executed through indirect calls. These indirections, meant to allow language constructs to handle different use cases are also an important source of slowdowns: Values require managing the heap memory while indirect code behaves in unpredictible ways, degrading processor-level optimizations such as caching, prefetching and branch prediction, all of which rely on direct and uniform code patterns. % Compared to their low-level equivalents, which handle precisely one case, high-level constructs can be up to 10$\times$ slower.
+
+Most of the flexibility provided at the language level remains unused in real programs. For example, in practice, it is rather uncommon for a program to store both integers and floating-point numbers in the same list. But, if the language allows it, the low-level code must be prepared to handle it, via indirections. Yet, there is a category of programming languages where the type of elements in a list is known: statically typed programming languages. In these languages, the compiler checks (and infers) the type of each expression, giving it the ability to guarantee that a list will only store 64-bit floating-point numbers. This is the case for Scala:
+
+\begin{lstlisting-nobreak}
+ scala> val list = List(1, 2, 3, 4, 5, `6.0`)
+ list: `List[Double]` = List(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+\end{lstlisting-nobreak}
+
+Scala lists are generic, parameterized on the type of their elements. In our example, the Scala compiler converts integers to double-precision (64 bit) floating-point numbers so the list can be considered to uniformly store only one type of elements. This reflects in the second line, where the type of the list is inferrd to |List[Double]|, signalling the fact that all elements are 64-bit floating-point numbers. This restriction, known at compile-time, has the potential to bring important speed improvements. The same applies to the |sum| operation:
+
+\begin{lstlisting-nobreak}
+ scala> println(`list.sum`) // static knowledge: this operation is summing
+ 21.0                             // up double-precision floating-point numbers
+\end{lstlisting-nobreak}
+
+Using the type system to restrict run-time behavior opens the door to using improved data representations for the elements and using more efficient operations. Yet, the object-oriented model poses unique challenges, which prevent standard compiler optimizations. For example, in the general case, the |sum| operation cannot be inlined and adapted for 64-bit floating-point numbers, as it may be overridden in a subclass of |List|. Therefore, in many cases, high-level language compilers ignore the optimization opportunities uncovered by static type systems.
+
+% Employing these transformations allows us to trade flexibility for optimality, by using list objects tailored for 64-bit floating-point numbers and for which the |sum| operation is performed more efficiently. Furthermore, the thesis shows how programmers can manually define more efficient representations for their data, guiding the compiler into using more efficient transformations for the code.
+
+In this thesis we study compile-time data representation transformations in object oriented languages, showing the two fundamental types of transformations:
+
+% \vspace{-0.5em}
+\begin{itemize}
+  \item[(1)] Using compatible, drop-in replacements for objects involved in the execution;
+  \item[(2)] Using incompatible replacements and introducing conversions where necessary.
+\end{itemize}
+% \vspace{-0.5em}
+
+We first show that the implementation of the first case relies on the second one and then provide a mechanism that automates the optimal introduction of conversions where necessary.
+
+% Story of development:
+%  1. miniboxing
+%  2. LDL
+%  3. iLDL
+\section{Thesis Outline}
+
+The main technical artifact of the thesis is a generics compilation scheme called miniboxing, implemented as a plugin to the Scala compliler, which produces Java Virtual Machine (JVM) bytecode. Miniboxing creates compatible drop-in replacements of generic classes, optimized for primitive types. Then, it automatically introduces these replacements into the code based on type information, improving performance by factors ranging between 1.1 and 20$\times$. In this section we explain how the different chapters of the thesis work together to cover the different aspects of the miniboxing transformation.
+
+\subsection{The Miniboxing Data Representation (Chapter \ref{chapter:miniboxing})}
+
+\begin{wrapfigure}{r}{50mm}
+  \centering
+  \vspace{-3em}
+  \includegraphics[width=50mm]{mbox2-white.pdf}
+  \vspace{-3em}
+  \caption{Miniboxing Logo}
+\end{wrapfigure}
+
+% Generics in the Scala programming language => erasure => boxing
+Genericity, also known as parametric polymorphism in functional languages, is a very powerful tool for abstraction: in a statically typed language, it allows defining data structures and algorithms that operate identically for different types of data. For example, the standard linked list class in the Scala library is parameterized on type of its elements: |List[T]| signals that all elements in the list have type |T|. Yet, regardless of the instantiation of |T|, the list preserves the same contract and asymptotic behavior for all its operations. Using generics increases safety, since type-correctness is checked during compilation and promotes code reuse, as the same linked list class can be employed in different contexts, for different types of elements: 32-bit integers, floating-point numbers, strings or any other nested objects or data structures.
+
+However, under the hood, the Java Virtual Machine (JVM) execution platform only supports defining non-generic (monomorphic) classes. Therefore, the generic information in the programming language must somehow be projected onto the more restrictive bytecode, producing monomorphic classes. The default solution taken by both the Java and Scala compilers is to use a transformation called erasure \cite{java-erasure}, which compiles a generic class to a single bytecode entity: a monomorphic class where the generic data is stored using references.
+
+Yet, there is a fundamental tension between the different sizes and semantics of the incoming data and the fact that there is a single class which must handle everything. The technical solution taken is to encode primitive types, such as booleans, bytes, integers and floating-point numbers into heap objects, so they can be handled similarly to strings, data structures and other programmer-defined objects. But this operation, known as boxing, is inefficient, introducing indirections and inflating the memory footprint.
+
+% Specialization in Scala => too much bytecode
+The first solution to improve generics in Scala, dubbed specialization, was implemented by \textem{Iulian Dragos} \cite{iuli-thesis, specialization-iuli} in 2009: instead of compiling the list into a single bytecode class, specialization creates multiple variants, each adapted for a primitive type. Despite the great speedups brought by this transformation, an important problem soon became aparent: with 10 variants per type parameter, covering the enitre Cartesian product of primitives for two or three type parameters produces too much bytecode. For example, the |Map| class in the Scala library takes two type parameters, so specialization produces as many as $10^2$ variants. Similarly, fully specializing classes such as |Tuple3| and |Function2|, both of which have three type parameters, results in $10^3$ variants. This prevents specialization from being used extensively in the Scala standard library.
+
+% Miniboxing => encode everything as a primitive
+We begin this thesis where specialization left off: addressing the large number of specialized variants produced when compiling generic classes. Chapter \ref{chapter:miniboxing} presents the miniboxing data encoding, which uses 64-bit long integers to encode primitive values\footnote{We extend the term ``value'' to mean either a final variable (``value'' in the Scala terminology), a variable, an argument or the return of a method. This notation is used consistently throughout the thesis. For immediate constants such as the integer 5 we use the term ``constant'' or ``constant value''.}, regardless of their type. Using this data representation, instead of generating ten variants per type parameter, we only generate two\footnote{In the latest implementation of the miniboxing compiler plugin, version 0.4, the miniboxing transformation generates three variants instead of two, in order to avoid negative interactions with the HotSpot Just-in-time compiler in the Oracle Java Virtual Machine. More information is available on the miniboxing plugin website \cite{miniboxing-www}.}, reducing the amount of bytecode produced. For example, with the miniboxing data encoding, |Map| has just four variants while |Tuple3| and |Function2| each have eight. %Yet, the transformation is more complex than specialization and implementing it required more research breakthroughs.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.8\textwidth]{mbox-diag.pdf}
+  \caption{Miniboxing Compatible Transformation}
+\end{figure}
+
+% But then T, the type parameter, can be represented as long integers in the ... => LDL
+In the introduction we mentioned two types of transformations: (1) using compatible drop-in replacements, like specialization and miniboxing and (2) using incompatible replacements, where conversions have to be inserted. In fact, miniboxing, which is a type (1) transformation requires a type (2) transformation behind the scenes: once a class, such as |List[T]|, has been duplicated to create the miniboxed variant, values of type |T| inside it have to be represented as 64-bit long integers. Since the two types, namely |T| and long integer are incompatible, we have to introduce conversions when values pass between representations.
+
+For the initial prototype of miniboxing, the transformation from |T| to long integer was done using the simple and conservative syntax-based transformation described in Section \ref{mbox:sec-mb-traf}. But the problems in scaling this transformation to all the source code patterns expressible in Scala created the need for a better, more principled transformation mechanism. This is how the Late Data Layout mechanism came to be.
+
+% \newpage
+
+% Inspired by the Scala erasure transformation itself, which unboxes scala.Int into the 32-bit ...
+\subsection{Late Data Layout (Chapter \ref{chapter:ldl})}
+
+\begin{wrapfigure}{r}{40mm}
+  \centering
+  \vspace{-2em}
+  \includegraphics[width=40mm]{ldl-frog.pdf}
+  \vspace{-2em}
+  \caption{LDL Logo}
+  \vspace{-1em}
+\end{wrapfigure}
+
+Late Data Layout (LDL) is a general mechanism for transforming the data representation when the replacement is incompatible. To preserve program consistency, conversions are introduced whenever values are passed across incompatible representations.
+
+The LDL mechanism is inspired by the transformations performed in the Scala compiler backend: The built-in |scala.Int| type corresponds to a 32-bit integer, but is able to abstract over the boxed and unboxed representations, exposing fewer decisions to programmers. Then, in the Scala compiler backend, |scala.Int| is transformed to either an unboxed integer (|int| in Java and JVM bytecode) or, as dictated by interactions with other language features, to a boxed one (|java.lang.Integer|). As the transformation progresses conversions between the two representations are introduced in the code as necessary.
+
+Miniboxing and unboxing primitive types in the Scala backend are both instances of LDL transformations. The common pattern handled by LDL is having a high-level type (the type parameter |T| for miniboxing or |scala.Int|) that can be represented in two or more ways. Then, based on the LDL mechanism, the compiler transforms the high-level type into its representations, introducing conversions each time a value is passed across different (and thus incompatible) representations. The LDL mechanism is backed by the type system, which means it is guaranteed to correctly introduce conversions where necessary. Furthermore, LDL allows individually picking the representation of each value in the program, thus allowing fine-grained control over the resulting lower-level code. Finally, special attention was paid to object-oriented code patterns, such as dynamic dispatch, subtyping and interactions with generics, all of which are correctly handled by LDL.
+
+Without going into the implementation details, there are three properties of LDL that stem from its current design:
+
+\begin{itemize}
+  \item Selectivity in the choice of data representation, at the level of individual value;
+  \item Consistency in terms of passing values between representations; % transformation is provably correct;
+  \item Optimality in terms of the number of coercions executed at runtime\footnote{Currently a conjecture, we are working on a formal proof.}.
+\end{itemize}
+
+Miniboxing makes full use of the three properties, allowing it to offset the code transformation to LDL and focus on the compatibile class duplication and replacement problems.
+
+LDL scales beyond miniboxing and unboxing Scala primitive types: it can also drive value class inlining \cite{gosling-value-classes,rose-value-classes-tearing,rose-value-classes-vm} and offer the compiler support for multi-stage programming \cite{tiark-lms, scala-virtualized}. The common trait across these transformations is that the high-level type and its representations are fixed inside the compiler. But this needs not be the case...
+
+%
+% Aside from the program transformations shown above, the LDL mechanism can be scaled into a new direction: allowing programers to perform data representation transformations.
+%
+%
+%
+% While further developing the miniboxing compiler plugin, we realized there were other transformations necessary to efficiently support the functional aspects of the Scala language, which led to the development of data-centric metaprogramming.
+
+\subsection{Data-Centric Metaprogramming (Chapter \ref{chapter:ildl})}
+
+\begin{wrapfigure}{r}{40mm}
+  \centering
+  \vspace{-2em}
+  \includegraphics[width=40mm]{ildl-frog3.pdf}
+  \vspace{-1em}
+  \caption{Data-Centric Metaprogramming Logo}
+  \vspace{-2em}
+\end{wrapfigure}
+
+
+Data-centric Metaprogramming is an extension of LDL that makes data representation transformations accessible to programmers. Through entities called transformation description objects, programmers can target values of specific (high-level) types and safely replace their data representations by custom, more efficient alternatives. Any type in the language can be targeted, from simple classes all the way to generic nested data structures. The alternative representation is written by the programmer, and it can be based on run-time profiling information or knowledge of how the data is used. Then, once the transformation has been defined, to trigger it,  programmers enclose anything from expressions to entire class definitions inside transformation scopes, where the compiler automatically introduces the custom, improved representation.
+
+% Example:
+There are many examples of using data-centric metaprogramming to improve performance:
+\begin{itemize}
+  \item Improving locality by splitting arrays of records into records of arrays;
+  \item Transforming eager collections into lazy collections, achieving deforestation \cite{wadler-deforestation};
+  \item Replacing variable-width integers by more efficient fixed-width alternatives;
+  \item Specializing a class from a library, which was previously impossible without changing the source code for the class.
+\end{itemize}
+
+Of course, programmers still have the possibility to refactor their code by hand instead of using data-centric metaprogramming. Yet, the cost of doing so in large code bases quickly becomes prohibitive and, lacking clear benchmarks, there is no guarantee the refactoring will pay off. Instead, data-centric metaprogramming allows writing idiomatic code which is automatically improved by the compiler, based on the transformation definitions.
+
+% metaprogramming
+What makes this extension unique is that it allows programmers to improve the data representation based on their own usage patterns, instead of limiting them to a fixed set of predefined compiler optimizations. This custom nature brings our approach close to metaprogramming. Yet, unlike metaprogramming, where the abstract syntax trees representing the program can be manipulated directly, potentially breaking semantics, data-centric metaprogramming only allows a limited and well-behaved set of transformations that offer correctness guarantees in terms of preserving the object-oriented aspects of the language.
+
+To complete the story, the data-centric metaprogramming approach was actually motivated and used by the miniboxing transformation, in order to efficiently handle the functional aspects of the Scala language. This is explained in the next part.
+
+
+\subsection{Scaling Miniboxing To Scala (Chapter \ref{chapter:mbox2})}
+
+The last chapter of the thesis presents the technical challenges of scaling the miniboxing transformation to the entire Scala language, with problems such as interoperating with erased and specialized generics and efficient construction and access for core language constructs, such as tuples, functions, arrays and type classes.
+
+\begin{wrapfigure}{r}{40mm}
+  \centering
+  \vspace{-2.5em}
+  \includegraphics[width=40mm]{puzzle.pdf}
+  \caption{Miniboxing Component Puzzle}
+  \vspace{-2em}
+\end{wrapfigure}
+
+In particular, the most interesting part is how a scoped transformation is used to introduce a better function encoding, that allows miniboxed code to efficiently call Scala functions, despite the fact that they use the older  specialization compilation scheme. The function transformation was initially implemented in the miniboxing plugin but we later separated it into the data-centric metaprogramming project. This shows how the three projects have been developed together throughout their existence, with the miniboxing plugin being the technical artifact and Late Data Layout being the underlying transformation.
+
+The next section describes the context of the work and its goals (and non-goals).
+
+\section{Context and Goals}
+
+This section describes the context of the work, motivating the key design decisions in the miniboxing and Data-Centric Metaprogramming projects. The choices in the Late Data Layout mechanism are mostly a consequence of the key decisions in the other projects and the context of the work.
+
+\subsection{Implicit Representation Choice}
+
+The first design goal in both the miniboxing and data-centric metaprogramming projects is to avoid directly exposing representations to the programmer, instead only offering a high-level type. This stems from the desire to reduce the number of decisions a programmer needs to make, assuming this will boost productivity\footnote{Unfortunately we do not currently have rigorous empirical evidence for this assumption.}. However, the opposite choice is equally valid: C++ aims to maintain a one to one relation between the language syntax and the low-level machine code. This means that a computationally expensive operation will require a syntactically more verbose piece of code at the source level. Either approach has its merits: one tries to reduce the decisions while the other improves predictability.
+
+Chapter \ref{chapter:mbox2} shows how performance advisories can be used to counter the unpredictable nature of using high-level types: since the compiler explicitly introduces expensive operations during LDL transformations, it can also warn the programmer, explaining why and where a slowdown is likely to occur. These warnings, coupled with actionable advice on how to avoid the slowdowns can help programmers improve performance even if they do not possess a good understanding of the code base. Section \ref{mbox2:sec:bench} evaluates performance advisories.
+
+In fact, both miniboxing and data-centric metaprogramming could equally be seen as source to source transformations. The miniboxing changes, such as creating class variants and using them where possible could be persisted in the source code. Similarly, the data-centric metaprogramming changes can also be done by programmers. So a natural question is ``Why not allow miniboxing and data-centric metaprogramming do source to source transformations''? Doing so would lower the abstraction level in the code, again forcing the programmer to make more choices (e.g. which variant of the class should I instantiate here?). Therefore we restrict the two transformations to the compiler pipeline.
+
+\subsection{Object Oriented Paradigm}
+
+% Natural paradigm.
+% Object-oriented paradigm -- very natural as it follows intensional definitions: genus/differentia definition
+%   Example Automobile -- Car, Motorcycle, ..., Tesla (Car with Electric)
+
+% Reuse -
+%  -- implementation reuse (List, Vector, Map)
+%  -- conceptual reuse (according to Einstein, we know the speed is less than c, which is approximately 1.1*10^9 km/h and above 0), we we use 32-bit integers
+
+Since the work was done in Scala, it takes object orientation as a given. In fact, the object oriented paradigm has the merit of being very close to the natural thought process, specifically to the genus/differentia kind of intensional definitions we usually see in dictionaries: a |Cat| is an |Animal| that meows, the |Dog| is an |Animal| that barks. However, it is exactly this aspect that poses the most challenges: the genus/differentia definitions force the last-moment binding of method implementations, in technical terms dynamic dispatch or virtual calling. Indeed, a big part of the data-centric metaprogramming extension to LDL is dedicated to supporting and emulating dynamic dispatch and to preserving the overriding relationships in the presence of signature changes. These problems would not have occurred in a functional language built on the type classes paradigm.
+
+Another challenge is posed by the imperative aspects in Scala: while the primitive boxing and unboxing operations can be considered side-effect free (considering a managed heap), when allowing the programmer to specify new data representation transformations, we run the risk of affecting semantics. Indeed, this is the subject of Sections \ref{ldl:sec:transform:how} and \ref{ildl:sec:ildl:custom} which explain under which conditions the transformations can be considered semantics-preserving. On the other hand, the evaluation in Section \ref{ildl:sec:benchmarks} clearly shows that slightly bending semantics, in a controlled manner, can actually bring significant performance benefits.
+
+In the transformations we assume a managed heap. Neither miniboxing nor data-centric metaprogramming would work with manual deallocation, since coercions allocate new objects. It may seem like the coercions that ``unbox'' could be used to free the allocated memory, but, in practice, there is no guarantee that the object being unboxed is not aliased somewhere else. We think that the techniques shown in this thesis would work on a region-based \cite{regions} memory management system as well, although we have not tested this.
+
+Depending on the level where reflection is implemented, data representation transformations may or may not affect it. In Scala, there are two levels of reflection: Scala reflection uses types persisted before data representation transformations kick in, and is thus imune to miniboxing and data-centric metaprogramming while the Java reflection, which is implemented at the bytecode level and can observe the transformations that occurred. On the other hand, it is not possible for a program to directly inspect its data representation\footnote{Otherwise we would have a clear case of breaking program semantics.} unless it is using identity-based equality or inspecting the stack.
+
+\subsection{Compile-Time Transformation}
+
+The transformations we are describing take place at compile-time. The implications are that transformations are permanent and that they make their way into the resulting bytecode. Other alternatives include load-time transformations, such as the .NET class specialization \cite{dot-net-generics} and run-time transformations, such as the ones done by Mozilla's \cite{tracemonkey} and Google's virtual machines for JavaScript, the PyPy virtual machine for Python\cite{bolz-pypy-tracing-jit} and the Truffle interpreter framework \cite{truffle}.
+
+Load-time data representation transformations have the merit of avoiding the extra low-level code at the expense of a one-time overhead when a class is loaded. We have experimented with load-time transformations and the conclusion was that, although in theory it is a one-time overhead, keeping the class instantiation overhead-free requires very complex machinery. We present our results in Section \ref{mbox:sec-classloading}.
+
+Run-time data representation transformations have the advantage of being able to speculate on the runtime properties of the data manipulated by the program. This allows them to optimistically optimize the program during just-in-time compilation, while also having the option of undoing an optimization if it proves too optimistic. Run-time data representation transformations are critical for dynamic language virtual machines, where types are not present to limit the possible run-time behaviors and only profiling can uncover optimization opportunities.
+
+\subsection{Open World Assumption and Separate Compilation}
+
+The open world assumption takes a central position in the work presented in this thesis: new classes may be loaded into the system dynamically and all approaches presented support separate compilation, allowing transformations to compose across compilation runs. We explain this topic further in Section \ref{ildl:sec:ildl:separate-compilation}. A closed world approach, despite its drawbacks, would allow much more aggressive optimizations, possibly at the expense of more costly analyses.
+
+\newpage
+
+\section{Contributions}
+
+The thesis makes the following contributions:
+
+\begin{itemize}
+  \item It presents the miniboxing generics compilation scheme with (1) its data encoding, (2) its solution to offering compatible drop-in versions of classes and (3) its approaches for interoperating with other generics compilation schemes (Chapters \ref{chapter:miniboxing} and \ref{chapter:mbox2});
+  \item It explains Late Data Layout (LDL), a general mechanism for data representation transformations (Chapter \ref{chapter:ldl});
+  \item It extends LDL into the data-centric metaprogramming approach, which makes data representation transformations directly accessible to programmers (Chapter \ref{chapter:ildl}).
+\end{itemize}
+
+\section{Publications}
+
+The thesis is based on four prior publications:
+
+\begin{itemize}
+  \item Chapter \ref{chapter:miniboxing} is based on ``Miniboxing: Improving the Speed to Code Size Tradeoff in Parametric Polymorphism Translations'' (OOPSLA '13) by Vlad Ureche, Cristian Talau and Martin Odersky \cite{miniboxing};
+  \item Chapter \ref{chapter:ldl} is based on ``Late Data Layout: Unifying Data Representation Transformations'' (OOPSLA '14) by Vlad Ureche, Eugene Burmako and Martin Odersky \cite{ldl};
+  \item Chapter \ref{chapter:ildl} is based on ``Automating Ad hoc Data Representation Transformations'' (OOPSLA '15) by Vlad Ureche, Aggelos Biboudis, Yannis Smaragdakis and Martin Odersky \cite{ildl-tech};
+  \item Chapter \ref{chapter:miniboxing} is based on ``Improving the Interoperation between Generics Translations'' (PPPJ '15) by Vlad Ureche, Milos Stojanovic, Romain Beguet, Nicolas Stucki and Martin Odersky \cite{miniboxing-pppj}.
+\end{itemize}
+
+\begin{wrapfigure}{r}{20mm}
+  \vspace{0.7em}
+  \centering
+  \includegraphics[width=20mm]{aec-badge.eps}
+  \vspace{-4em}
+\end{wrapfigure}
+
+The papers are used in the thesis with the co-authors' permission.
+
+The implementation artifacts for the first three papers have been checked by the OOPSLA Artifact Evaluation Committee and have received the seal of quality. The PPPJ conference does not offer a similar distinction.
+The plugin implementations are openly available: \cite{miniboxing-www,ildl-plugin,ldl-staging-plugin,ldl-value-class-plugin,miniboxing-plugin}.

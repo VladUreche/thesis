@@ -1,0 +1,69 @@
+%\begingroup
+%\let\cleardoublepage\clearpage
+
+
+% English abstract
+\cleardoublepage
+\chapter*{Abstract}
+%\markboth{Abstract}{Abstract}
+\addcontentsline{toc}{chapter}{Abstract} % adds an entry to the table of contents
+
+\vspace{1em}
+
+There is a fundamental mismatch between the simple and precise processor instructions and high-level programs, which make heavy use of abstraction and must handle different types of incoming data. The low-level code executed for such programs contains many indirections, trading efficiency for flexibility. But the full flexibility of this model is rarely used in practice. For example, although it is possible, it is rather uncommon for a list to mix integers and strings at the same time. However, if the language allows that, the low-level implementation should be prepared to support it.
+
+\vspace{1em}
+
+Statically typed programming languages can bound the run-time behavior of programs: based on types, it can be statically guaranteed that a list will only store a certain type of values, such as 64-bit floating-point numbers. In such a case, it would be good to replace the flexible but inefficient list implementation by a more efficient one, tailored for the type of elements it holds. However, such transformations are complex and can easily break the program semantics, especially in object-oriented languages.
+
+\vspace{1em}
+
+In this thesis we present miniboxing, a compilation scheme that improves the performance of generics for primitive types in object-oriented languages. Miniboxing works in two steps: First, it creates versions of generic classes that handle primitive types efficiently. Then, based on type information, it replaces these generic classes by their newly created equivalents. Despite the straight-forward description, miniboxing is a rather complex transformation scheme and has far-reaching implications. Its development prompted the uncovering of other transformations that generalize and unify existing approaches and opening new directions where programers can define their own improved objects that the compiler automatically uses.
+
+\vspace{1em}
+
+The two main technical results of the thesis are:
+
+\begin{itemize}
+  \item Miniboxing, a generics specialization scheme that improves performance by up to 20$\times$;
+  \item Data-centric metaprogramming, a system that allows programmers to devise better data representations themselves and instruct the compiler to use them, producing speedups of up to 25$\times$.
+\end{itemize}
+
+% Both of these use a common transformation platform, which can also adapt to other transformations is use today.
+
+\vskip0.5cm
+Key words:
+Data Representation; Transformation; Object-Oriented; Static Type System; Performance; Generics; Specialization; Java; Java Virtual Machine; Bytecode; Safety; Semantics.
+
+
+
+% % German abstract
+% \begin{otherlanguage}{german}
+% \cleardoublepage
+% \chapter*{Zusammenfassung}
+% %\markboth{Zusammenfassung}{Zusammenfassung}
+% % put your text here
+% \lipsum[1-2]
+% \vskip0.5cm
+% Stichwörter:
+% %put your text here
+% \end{otherlanguage}
+
+
+
+
+% % French abstract
+% \begin{otherlanguage}{french}
+% \cleardoublepage
+% \chapter*{Résumé}
+% %\markboth{Résumé}{Résumé}
+% % put your text here
+% \lipsum[1-2]
+% \vskip0.5cm
+% Mots clefs:
+% %put your text here
+% \end{otherlanguage}
+
+
+%\endgroup
+%\vfill
