@@ -8,32 +8,30 @@
 %\markboth{Abstract}{Abstract}
 \addcontentsline{toc}{chapter}{Abstract} % adds an entry to the table of contents
 
-\vspace{1em}
+\vspace{0.7em}
 
-There is a fundamental mismatch between the simple and precise processor instructions and high-level programs, which make heavy use of abstraction and must handle different types of incoming data. The low-level code executed for such programs contains many indirections, trading efficiency for flexibility. But the full flexibility of this model is rarely used in practice. For example, although it is possible, it is rather uncommon for a list to mix integers and strings at the same time. However, if the language allows that, the low-level implementation should be prepared to support it.
+High-level languages allow programmers to express data structures and algorithms that operate on any type of data, regardless of size and semantics: while this is the norm for dynamic languages, statically typed languages also allow this behavior through generics. However, executing such code requires many low-level indirections, which slow down execution. This leads to a pessimistic scenario: even code that does not use the full power of abstraction still pays the full price of indirection. Furthermore, despite the fact that statically typed programming languages limit some of the run-time behaviors of a program, object-oriented language compilers shy away from many optimizations due to their complexity.
 
-\vspace{1em}
+\vspace{0.7em}
 
-Statically typed programming languages can bound the run-time behavior of programs: based on types, it can be statically guaranteed that a list will only store a certain type of values, such as 64-bit floating-point numbers. In such a case, it would be good to replace the flexible but inefficient list implementation by a more efficient one, tailored for the type of elements it holds. However, such transformations are complex and can easily break the program semantics, especially in object-oriented languages.
+In the first part of the thesis we present miniboxing, a compile-time transformation that uses the type information available in Scala programs to replace generic classes by more efficient versions, optimized to handle primitive types. These classes, known as variants are fully compatible drop-in replacements for the original class, with the single difference that they use the miniboxed encoding to store data. Thanks to this data representation, storage and operations in variant classes are more efficient, making miniboxed code by up to 20$\times$ faster compared to the original class.
 
-\vspace{1em}
+\vspace{0.7em}
 
-In this thesis we present miniboxing, a compilation scheme that improves the performance of generics for primitive types in object-oriented languages. Miniboxing works in two steps: First, it creates versions of generic classes that handle primitive types efficiently. Then, based on type information, it replaces these generic classes by their newly created equivalents. Despite the straight-forward description, miniboxing is a rather complex transformation scheme and has far-reaching implications. Its development prompted the uncovering of other transformations that generalize and unify existing approaches and opening new directions where programers can define their own improved objects that the compiler automatically uses.
+Further generalizing the miniboxing transformation, we show the Late Data Layout mechanism, a type-driven transformation framework that can be instantiated to perform the miniboxing code transformations, inlining value classes and unboxing primitive types in high-level languages. The Late Data Layout mechanism has many desirable properties, such as provable correctness in handling different data representations, optimality in terms of conversions introduced and built-in support for the object-oriented paradigm. The current version of the miniboxing transformation uses Late Data Layout under the hood.
 
-\vspace{1em}
+\vspace{0.7em}
 
-The two main technical results of the thesis are:
+Finally, we show Data-Centric Metaprogramming, a technique that allows programmers to go beyond the general optimizations already shown by defining custom, improved data representations that the compiler can automatically use when translating a program. This technique, similar in spirit to metaprogramming, is actually more restrictive and well-behaved, opening new opportunities for programmer-driven optimizations and showing encouraging results, with speedups of up to 25$\times$. Under the hood, Data-Centric Metaprogramming uses the Late Data Layout mechanism.
 
-\begin{itemize}
-  \item Miniboxing, a generics specialization scheme that improves performance by up to 20$\times$;
-  \item Data-Centric Metaprogramming, a system that allows programmers to devise better data representations themselves and instruct the compiler to use them, producing speedups of up to 25$\times$.
-\end{itemize}
+% \vspace{1em}
+%
+% Finally, we show how the miniboxing transformation ties uses all the research artifacts presented in the thesis to deliver reliable speedups for generic programs.
 
-% Both of these use a common transformation platform, which can also adapt to other transformations is use today.
-
-\vskip0.5cm
+\vspace{1.2em}
 Key words:
 Data Representation; Transformation; Object-Oriented; Static Type System; Performance; Generics; Specialization; Java; Java Virtual Machine; Bytecode; Safety; Semantics.
+
 
 
 
