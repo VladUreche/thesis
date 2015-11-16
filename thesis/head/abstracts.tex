@@ -1,6 +1,5 @@
-%\begingroup
-%\let\cleardoublepage\clearpage
-
+\begingroup
+\let\cleardoublepage\clearpage
 
 % English abstract
 \cleardoublepage
@@ -8,27 +7,27 @@
 %\markboth{Abstract}{Abstract}
 \addcontentsline{toc}{chapter}{Abstract} % adds an entry to the table of contents
 
-\vspace{0.7em}
+\vspace{0.5em}
 
-High-level languages allow programmers to express data structures and algorithms that operate on any type of data, regardless of size and semantics: while this is the norm for dynamic languages, statically typed languages also allow this behavior through generics. However, executing such code requires many low-level indirections, which slow down execution. This leads to a pessimistic scenario: even code that does not use the full power of abstraction still pays the full price of indirection. Furthermore, despite the fact that statically typed programming languages limit some of the run-time behaviors of a program, object-oriented language compilers shy away from many optimizations due to their complexity.
+High-level languages allow programmers to express data structures and algorithms that abstract over the type of data they handle. Yet, interacting with any incoming values, regardless of size and semantics requires many low-level indirections, which slow down program execution. Since this is the standard behavior of dynamic languages, much research has gone into improving their performance based on information captured during program execution. However, this behavior is also present in statically typed languages through the use of generics. Yet, there has been comparatively little research into optimizing the way data is stored and handled in statically typed languages. This thesis explores several compile-time approaches to leveraging the run-time guarantees offered by static type systems in order to improve program performance by offering more efficient ways to store and handle data.
 
-\vspace{0.7em}
+\vspace{0.5em}
 
-In the first part of the thesis we present miniboxing, a compile-time transformation that uses the type information available in Scala programs to replace generic classes by more efficient versions, optimized to handle primitive types. These classes, known as variants are fully compatible drop-in replacements for the original class, with the single difference that they use the miniboxed encoding to store data. Thanks to this data representation, storage and operations in variant classes are more efficient, making miniboxed code by up to 20$\times$ faster compared to the original class.
+In the first part of the thesis we present miniboxing, a compile-time transformation that uses the type information available in Scala programs to replace generic classes by more efficient versions, optimized to handle primitive types. These variants are fully compatible drop-in replacements for the original class, with the single difference that they use the miniboxed data encoding. In turn, this encoding allows a more efficient handling of primitive types, producing speedups of up to 20$\times$ when the transformation is active.
 
-\vspace{0.7em}
+\vspace{0.5em}
 
-Further generalizing the miniboxing transformation, we show the Late Data Layout mechanism, a type-driven transformation framework that can be instantiated to perform the miniboxing code transformations, inlining value classes and unboxing primitive types in high-level languages. The Late Data Layout mechanism has many desirable properties, such as provable correctness in handling different data representations, optimality in terms of conversions introduced and built-in support for the object-oriented paradigm. The current version of the miniboxing transformation uses Late Data Layout under the hood.
+Further generalizing miniboxing, we show the Late Data Layout (LDL) mechanism. LDL is a type-driven transformation mechanism that can be instantiated to perform a host of performance-oriented program rewritings in high-level languages, such as miniboxing generics, inlining value classes and unboxing primitive types. The LDL mechanism has many desirable properties, such as provable correctness in handling different data representations, reduced number of conversions introduced and built-in support for the object-oriented paradigm. Currently, Late Data Layout forms the backbone of the miniboxing transformation.
 
-\vspace{0.7em}
+\vspace{0.5em}
 
-Finally, we show Data-Centric Metaprogramming, a technique that allows programmers to go beyond the general optimizations already shown by defining custom, improved data representations that the compiler can automatically use when translating a program. This technique, similar in spirit to metaprogramming, is actually more restrictive and well-behaved, opening new opportunities for programmer-driven optimizations and showing encouraging results, with speedups of up to 25$\times$. Under the hood, Data-Centric Metaprogramming uses the Late Data Layout mechanism.
+Finally, we show Data-Centric Metaprogramming, a technique that allows programmers to go beyond standard compiler optimizations by defining custom, improved data representations that the compiler can automatically use when translating a program. This technique, similar in spirit to metaprogramming, is actually more restrictive and thus better-behaved than full-blown metaprogramming. Yet it opens new directions in programmer-driven optimizations and shows encouraging results, with speedups of up to 25$\times$. Under the hood, Data-Centric Metaprogramming also uses the Late Data Layout mechanism.
 
-% \vspace{1em}
-%
-% Finally, we show how the miniboxing transformation ties uses all the research artifacts presented in the thesis to deliver reliable speedups for generic programs.
+\vspace{0.5em}
 
-\vspace{1.2em}
+% Finally, we show how all the techniques above collaborate to make the miniboxing transformation optimally handle the entire Scala programming language, including constructs such as functional interfaces, tuples and type classes, which are automatically transformed using a customized version of the Data-centric Metaprogramming technique. We also explain the principles used by the miniboxing plugin to guide programmers to improve their code through actionable performance advisories.
+
+% \vspace{1.0em}
 Key words:
 Data Representation; Transformation; Object-Oriented; Static Type System; Performance; Generics; Specialization; Java; Java Virtual Machine; Bytecode; Safety; Semantics.
 
@@ -50,17 +49,35 @@ Data Representation; Transformation; Object-Oriented; Static Type System; Perfor
 
 
 
-% % French abstract
-% \begin{otherlanguage}{french}
-% \cleardoublepage
-% \chapter*{Résumé}
-% %\markboth{Résumé}{Résumé}
-% % put your text here
-% \lipsum[1-2]
-% \vskip0.5cm
-% Mots clefs:
-% %put your text here
-% \end{otherlanguage}
+% French abstract
+\begin{otherlanguage}{french}
+\cleardoublepage
+\chapter*{Résumé}
+%\markboth{Résumé}{Résumé}
+
+Les langages de programmation haut niveau permettent aux programmeurs de développer des structures de données et algorithmes en faisant abstraction du type de données qu'ils gèrent. Cette abstraction a pourtant un coût sur la performance, en raison de plusieurs indirections bas-niveau que cette dernière introduit. Cette capacité d’abstraction étant la norme dans les langages dynamiquement typées, des recherches importantes ont été consacrés à l'amélioration de leur performance à partir des informations capturées pendant l'exécution du programme. Les langages statiquement typées permettent aussi d’abstraire sur les types de données, grâce à la généricité (“generics”). Mais il y a relativement peu de recherche sur l'optimisation de la façon dont les données sont stockées et traitées dans ces langages. Cette thèse explore plusieurs techniques de compilation qui utilisent les garanties offertes par les systèmes de typage statiques afin d'améliorer les performances d’un programme en introduisant des moyens plus efficaces pour stocker et gérer les données.
+
+\vspace{0.5em}
+
+Dans la première partie de la thèse, nous présentons le “miniboxing”, une transformation qui, pendant la compilation de programmes Scala, utilise les informations de type pour remplacer des classes génériques par des versions optimisées pour gérer les types primitifs. Ces variantes sont sémantiquement équivalentes à leurs versions génériques, à la seule différence qu’elles utilisent un encodage “miniboxé” des données. Cet encodage permet un traitement plus efficace des types primitifs, et produit des programmes qui s'éxecutent jusqu’à 20$\times$ plus vite que les versions génériques.
+
+\vspace{0.5em}
+
+En généralisant le miniboxing, nous introduisons le mécanisme de “Late Data Layout” (LDL). Le LDL est un mécanisme de transformation qui utilise sur le système de typage  pour effectuer une multitude de transformations pour améliorer la performance de programmes haut niveau, tels que le miniboxing, l’”inlining” des “value classes”, et l’élimination du “boxing” des types primitifs. Le mécanisme de LDL a de nombreuses propriétés souhaitables: nous prouvons que les différentes manipulations de données sont correctes, que le nombre de conversions entre différents formats est minimisé, et nous intégrons cette transformation dans les langages orienté objet.
+
+\vspace{0.5em}
+
+Finalement, nous introduisons la metaprogrammation centrée sur les données (Data-Centric Metaprogramming), une technique qui permet aux programmeurs d'aller au-delà des optimisations standard du compilateur, en de définir des représentations sur mesure pour leur données. Ces représentations sont ensuite automatiquement utilisées par le compilateur lors de la transformation d'un programme. Cette technique, dans le même esprit de métaprogrammation, est en fait plus restrictive et donc se comporté mieux que la métaprogrammation complete. Elle ouvre de nouvelles directions dans optimisations entraînés par le programmeur et montre des résultats encourageants, avec des accélérations allant jusqu'à 25 $\times$. A la base, la “Data-Centric Metaprogramming” utilise également le “Late Data Layout”.
+
+\vspace{0.5em}
+
+% Finally, we show how all the techniques presented collaborate to make the miniboxing transformation optimally handle the entire Scala programming language, including constructs such as functional interfaces, tuples and type classes, which are automatically transformed using a customized version of the Data-centric Metaprogramming technique. We also explain the principles used by the miniboxing plugin to guide programmers to improve their code through actionable performance advisories.
+
+% \vspace{1.0em}
+Mots clefs:
+
+Data Representation; Transformation; Object-Oriented; Static Type System; Performance; Generics; Specialization; Java; Java Virtual Machine; Bytecode; Safety; Semantics.
+\end{otherlanguage}
 
 
 %\endgroup
