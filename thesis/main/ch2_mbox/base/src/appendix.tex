@@ -15,8 +15,8 @@ Is transformed to:
 \begin{lstlisting-nobreak}
 trait C[@miniboxed T] extends Object
 class C_M[Tsp] extends Object with C[Tsp] {
-  private[this] val C_M|T_TypeTag: Byte = _ // type byte field
-  def <init>(C_M|T_TypeTag: Byte): C_M[Tsp] = // class constructor
+  private[this] val `C_M|T_TypeTag`: Byte = _ // type byte field
+  def <init>(`C_M|T_TypeTag`: Byte): C_M[Tsp] = // class constructor
 }
 class C_L[Tsp] extends Object with C[Tsp] {
   def <init>(): C_L[Tsp] =  // class constructor
@@ -34,7 +34,7 @@ Is implemented by calling the constructor with the type byte:
 \begin{lstlisting-nobreak}
 class D extends C_M[Int] {
   def <init>(): D = {
-    D.super.<init>(INT) // intialize type byte
+    D.super.<init>(`INT`) // intialize type byte
     ()
   }
 }
@@ -51,7 +51,7 @@ The miniboxing transformation leaves the type byte as a method:
 \begin{lstlisting-nobreak}
 trait T[@miniboxed T] extends Object
 trait T_M[Tsp] extends Object with T[Tsp] {
-  def T_M|T_TypeTag(): Byte // type byte accessor
+  def `T_M|T_TypeTag`(): Byte // type byte accessor
 }
 trait T_L[Tsp] extends Object with T[Tsp]
 \end{lstlisting-nobreak}
@@ -66,7 +66,7 @@ It also implements the abstract type byte accessor:
 
 \begin{lstlisting-nobreak}
 class U extends Object with T_M[Int] {
-  def T_M|T_TypeTag(): Byte = INT
+  def `T_M|T_TypeTag`(): Byte = `INT`
   def <init>(): U = // class constructor
 }
 \end{lstlisting-nobreak}
@@ -140,7 +140,7 @@ class E_MM[Tsp, Usp] extends D_M[Tsp,Usp] with E[Tsp,Usp] {
   def foo_MM(T_TypeTag: Byte, U_TypeTag: Byte, t: Long, u: Long): Int = 3
   def foo_ML(T_TypeTag: Byte, t: Long, u: Usp): Int = // redirect to foo_MM
   def foo_LM(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo_MM
-  override def foo_M(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo_MM
+  override def `foo_M`(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo_MM
 }
 \end{lstlisting-nobreak}
 
@@ -152,19 +152,19 @@ Inner classes pose an interesting challenge for the transformation:
 
 \begin{lstlisting-nobreak}
 class C[@miniboxed T] {
-  class E(t: T)
+  class E(t: `T`)
 }
 \end{lstlisting-nobreak}
 
 They can be translated in two ways: either (1) create a single inner class |D|, which boxes and (2) duplicate class D in each specialization. The current version of the miniboxing plug-in implements solution (1) and warns the user:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ mb-scalac inner.scala
 inner.scala:2: warning: The class E will not be miniboxed based on type parameter(s) T of miniboxed class C. To have it specialized, add the type parameters of class C, marked with "@miniboxed" to the definition of class E and instantiate it explicitly passing the type parameters from class C:
   class E(t: T)
         ^
 one warning found
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 Instead, if the class E is located inside a method, it will be automatically duplicated, according to solution (2).
 
@@ -172,7 +172,7 @@ Instead, if the class E is located inside a method, it will be automatically dup
 
 As explained in Chapter \ref{chapter:intro}, data representation transformations are not binary compatible. Another compatibility question that can be asked is what happens if a library is compiled with the miniboxing plugin and then a client tries to use it without adding the miniboxing plugin. In such scenarios, the compilation should fail:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ cat C.scala
 class C[@miniboxed T]
 
@@ -186,6 +186,6 @@ D.scala:1: error: The class C can only be referred to when using the miniboxing 
 class D extends C[Int]
                 ^
 one error found
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 Indeed, the miniboxing plugin annotates all transformed classes with a special marker that prevents the vanilla compiler from referring to them. The underlying mechanism is a general annotation, called |@compileTimeOnly(message: String)| that prevents the compiler from emitting any reference to a symbol in the backend. When the miniboxing plugin is active, transformed classes have the annotation automatically removed, so the backend can refer to the symbols. However, when the miniboxing plugin is not active, the transformed classes loaded from the classpath maintain their annotation, preventing the compilation process.

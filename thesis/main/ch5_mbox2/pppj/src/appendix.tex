@@ -1,3 +1,4 @@
+\newpage
 \section{Appendix: Miniboxing Advisories Example}
 
 In this appendix we show an example of using miniboxing advisories to improve program performance. The running example is:
@@ -49,77 +50,77 @@ timed(quicksort(arr))
 
 The |quicksort| method is generic, so we can expect it would be slow on sorting a 50 million element array. Running the example in vanilla Scala, we get:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ scala quick.scala
 Computation took 4868 milliseconds.
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
-Now, running it with the miniboxing plugin, we obtain a performance advisory and approximately the same timing:
+Now, running it with the miniboxing plugin reveales the first performance advisory and approximately the same timing:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ mb-scala quick.scala
 quick.scala:43: warning: Method quicksort would benefit from miniboxing type parameter T, since it is instantiated by a primitive type.
 timed(quicksort(arr))
       ^
 one warning found
 Computation took 4827 milliseconds.
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 To address the advisory, we add the |@miniboxed| annotation to the |quicksort| method:
 
 \begin{lstlisting-nobreak}
-def quicksort[@miniboxed T](array: Array[T])(implicit ev: Ordering[T]): Unit = ...
+def quicksort[`@miniboxed` T](array: Array[T])(implicit ev: Ordering[T]): Unit = ...
 \end{lstlisting-nobreak}
 
 Running the example again produces the following output:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ mb-scala quick.scala
 quick.scala:9: warning: Use MbArray instead of Array to eliminate the need for ClassTags and benefit from seamless interoperability with the miniboxing specialization. For more details about MbArrays, please check the following link: http://scala-miniboxing.org/arrays.html
       val pivot = array((start + finish) / 2)
                   ^
 one warning found
 Computation took 8072 milliseconds.
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 We have another performance advisory and the running time degraded. Indeed, this is expected, as we are paying the price of interoperation between generics compilation schemes. To address this advisory, we need to update the quicksort signature:
 
 \begin{lstlisting-nobreak}
-def quicksort[@miniboxed T](array: MbArray[T])(implicit ev: Ordering[T]): Unit = ...
+def quicksort[@miniboxed T](array: `MbArray[T]`)(implicit ev: Ordering[T]): Unit = ...
 \end{lstlisting-nobreak}
 
 And adapt its argument:
 
 \begin{lstlisting-nobreak}
-val arr = MbArray.clone(Array.range(5e7.toInt, 0, -1))
+val arr = `MbArray.clone(`Array.range(5e7.toInt, 0, -1)`)`
 timed(quicksort(arr))
 \end{lstlisting-nobreak}
 
 Running once more, the output is yet again updated:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ mb-scala quick.scala
 quick.scala:3: warning: Upgrade from trait Ordering[T] to class MiniboxedOrdering[T] to benefit from miniboxing specialization:
 def quicksort[@miniboxed T](array: MbArray[T])(implicit ev: Ordering[T]): Unit = {
                                                             ^
 one warning found
 Computation took 7586 milliseconds.
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 Addressing the last peformance advisory requires updating the signature of |quicksort| and its initial import:
 
 \begin{lstlisting-nobreak}
-def quicksort[@miniboxed T](array: MbArray[T])(implicit ev: MiniboxedOrdering[T]): Unit = {
-  import MiniboxedOrdering.Implicits._
+def quicksort[@miniboxed T](array: MbArray[T])(implicit ev: `MiniboxedOrdering`[T]): Unit = {
+  import `MiniboxedOrdering`.Implicits._
   ...
 }
 \end{lstlisting-nobreak}
 
 With this change, we can run again:
 
-\begin{lstlisting-nobreak}
+\begin{lstlisting-nobreak-nolang}
 $ mb-scala quick.scala
 Computation took 1780 milliseconds.
-\end{lstlisting-nobreak}
+\end{lstlisting-nobreak-nolang}
 
 The final run does not show any more performance advisories. And, indeed, the |quicksort| method is now 2.7$\times$ faster than the original erased version. This is how performance advisories can guide a programmer into improving performance even without being an expert of the code base.

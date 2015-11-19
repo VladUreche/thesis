@@ -1,7 +1,7 @@
 \section{Compilation Schemes for Generics}
 \label{mbox2:sec:minibox}
 
-This section describes the different compilation schemes for generics in Scala.
+This section briefly reviews the different compilation schemes for generics in Scala.
 
 \subsection{Erasure}
 
@@ -207,7 +207,7 @@ So far, we have only looked at methods, but transforming classes poses even grea
 
 \subsection{Class Transformation in Miniboxing}
 
-Scala specialization \cite{iuli-thesis, specialization-iuli} introduced a better class translation, which is compatible to erased generics. Miniboxing \cite{miniboxing} inherited and adapted this scheme, addressing two of its major drawbacks, namely the double fields and broken inheritance. For this reason, we will present the miniboxed class translation scheme directly.
+Scala specialization \cite{iuli-thesis, specialization-iuli} introduced a better class translation, which is compatible to erased generics. Miniboxing inherited and adapted this scheme, addressing two of its major drawbacks, namely the double fields and broken inheritance. For this reason, we will present the miniboxed class translation scheme directly.
 
 The main challenge of interoperating with erased generics is to preserve the inheritance relation while providing specialized variants of the class, where fields are encoded as miniboxed long integers instead of |Object|s. Let us take the linked list node class again, this time written in Scala:
 

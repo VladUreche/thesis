@@ -173,7 +173,7 @@ What we can also notice is that, across all benchmarks, the input data occupies 
 
 
 \noindent
-\textbf{The ``adrt'' transformation} performs deforestation by automatically introducing |LazyList|s. This avoids the creation of intermediate lists and thus significantly reduces the garbage produced. We tried using two versions of |LazyList|: one using erased generics (adrt generic) and one using miniboxing \cite{miniboxing} specialization (adrt miniboxed).
+\textbf{The ``adrt'' transformation} performs deforestation by automatically introducing |LazyList|s. This avoids the creation of intermediate lists and thus significantly reduces the garbage produced. We tried using two versions of |LazyList|: one using erased generics (adrt generic) and one using miniboxing specialization (adrt miniboxed).
 
 The erased generic |LazyList| executed the code on par with the scalablitz optimizer but produced less garbage and the GC pause was much shorter (probably requiring a simple young-generation collection, not a full mark and sweep).
 
