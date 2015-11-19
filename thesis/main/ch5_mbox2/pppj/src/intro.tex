@@ -35,7 +35,7 @@ Generics on the Java platform are compiled using the erasure transformation \cit
 
 A solution to avoid the boxing overhead is having different versions of a class or method for the primitive types, in a transformation called specialization. This allows instantiating the most specific class and calling the most specific method, in both cases avoiding the need for boxing primitive types. Specialization is currently being implemented in Java as part of Project Valhalla \cite{goetz-specialization, rose-value-classes-tearing, rose-value-classes-vm}.
 
-The Scala programming language, which compiles to JVM bytecode, has had compile-time specialization for 6 years \cite{iuli-thesis, specialization-iuli} and currently has three mechanisms for compiling generics: erasure, specialization and a new arrival, miniboxing \cite{miniboxing}. In Scala, all three generics compilation schemes can be freely mixed:
+The Scala programming language, which compiles to JVM bytecode, has had compile-time specialization for 6 years \cite{iuli-thesis, specialization-iuli} and currently has three mechanisms for compiling generics: erasure, specialization and miniboxing. In Scala, all three generics compilation schemes can be freely mixed:
 
 \begin{lstlisting-nobreak}
 // The Mbox class is miniboxed by virtue of the type

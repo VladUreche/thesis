@@ -33,6 +33,6 @@ many of the common semantics-altering pitfalls. Given a programmer-designed data
 
 \begin{itemize}
   \item Introducing the data representation metaprogramming problem, which, to the best of our knowledge, has not been addressed at all in the literature (\S\ref{ildl:sec:problem});
-  \item Presenting the extensions that allow global data representation transformations (\S\ref{ildl:sec:drt}) to be used as scoped programmer-driven transformations (\S\ref{ildl:sec:ildl});
+  \item Presenting the extensions that allow global data representation transformations to be used as scoped programmer-driven transformations (\S\ref{ildl:sec:ildl});
   \item Implementing the approach presented as a Scala compiler plugin \cite{ildl-plugin} that allows programmers to express custom transformations (\S\ref{ildl:sec:impl}) and benchmarking the plugin on a broad spectrum of transformations, ranging from improving the data layout and encoding, to retrofitting specialization and value class status, and to collection deforestation \cite{wadler-deforestation}. These transformations produced  speedups between 1.8 and 24.5x on user programs (\S\ref{ildl:sec:benchmarks}).
 \end{itemize}

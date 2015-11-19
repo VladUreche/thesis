@@ -1,0 +1,191 @@
+\section{Appendix: Miniboxing Transformation Corner Cases}
+
+In this appendix we show a number of examples that exercise more complex cases of the miniboxing transformation.
+
+\subsection{Type Bytes in Traits}
+
+One of the surprising parts of the miniboxing transformation relates to how traits (interfaces with default methods) store their type bytes. To see the problem, we need to first look at the class translation:
+
+\begin{lstlisting-nobreak}
+class C[@miniboxed T]
+\end{lstlisting-nobreak}
+
+Is transformed to:
+
+\begin{lstlisting-nobreak}
+trait C[@miniboxed T] extends Object
+class C_M[Tsp] extends Object with C[Tsp] {
+  private[this] val C_M|T_TypeTag: Byte = _ // type byte field
+  def <init>(C_M|T_TypeTag: Byte): C_M[Tsp] = // class constructor
+}
+class C_L[Tsp] extends Object with C[Tsp] {
+  def <init>(): C_L[Tsp] =  // class constructor
+}
+\end{lstlisting-nobreak}
+
+The example shows the fact that class |C_M| stores its type byte as a field. Then, extending it:
+
+\begin{lstlisting-nobreak}
+class D extends C[Int]
+\end{lstlisting-nobreak}
+
+Is implemented by calling the constructor with the type byte:
+
+\begin{lstlisting-nobreak}
+class D extends C_M[Int] {
+  def <init>(): D = {
+    D.super.<init>(INT) // intialize type byte
+    ()
+  }
+}
+\end{lstlisting-nobreak}
+
+But traits cannot store fields, so they have to be translated differently. For example:
+
+\begin{lstlisting-nobreak}
+trait T[@miniboxed T]
+\end{lstlisting-nobreak}
+
+The miniboxing transformation leaves the type byte as a method:
+
+\begin{lstlisting-nobreak}
+trait T[@miniboxed T] extends Object
+trait T_M[Tsp] extends Object with T[Tsp] {
+  def T_M|T_TypeTag(): Byte // type byte accessor
+}
+trait T_L[Tsp] extends Object with T[Tsp]
+\end{lstlisting-nobreak}
+
+And when a class extends the trait:
+
+\begin{lstlisting-nobreak}
+class U extends T[Int]
+\end{lstlisting-nobreak}
+
+It also implements the abstract type byte accessor:
+
+\begin{lstlisting-nobreak}
+class U extends Object with T_M[Int] {
+  def T_M|T_TypeTag(): Byte = INT
+  def <init>(): U = // class constructor
+}
+\end{lstlisting-nobreak}
+
+Therefore, type bytes are stored differently in classes and traits.
+
+\subsection{Overriding}
+
+Another non-obvious problem occurs with creating specialized overloads is that, through name mangling, no longer override correctly.
+To show how overriding works, let us start from the following example:
+
+\begin{lstlisting-nobreak}
+class C[T, U] {
+  def foo(t: T, u: U): Int = 1
+}
+
+class D[T, @miniboxed U] extends C[T, U] {
+  override def foo(t: T, u: U): Int = 2
+}
+\end{lstlisting-nobreak}
+
+Which is transformed to (constructors omitted for brevity):
+
+\begin{lstlisting-nobreak}
+class C[T, U] extends Object {
+  def foo(t: T, u: U): Int = 1
+}
+
+trait D[T, @miniboxed U] extends C[T,U] {
+  override def foo(t: T, u: U): Int
+  def foo_M(U_TypeTag: Byte, t: T, u: Long): Int
+}
+class D_M[Tsp, Usp] extends C[Tsp,Usp] with D[Tsp,Usp] {
+  private[this] val D_M|U_TypeTag: Byte = _
+  override def foo(t: Tsp, u: Usp): Int = // redirect to foo_M
+  def foo_M(U_TypeTag: Byte, t: Tsp, u: Long): Int = 2
+}
+class D_L[Tsp, Usp] extends C[Tsp,Usp] with D[Tsp,Usp] {
+  override def foo(t: Tsp, u: Usp): Int = 2
+  def foo_M(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo
+}
+\end{lstlisting-nobreak}
+
+The method |foo| in class |C| is correctly overridden by the implementations in both class |D_L| and |D_M|.
+However, let us now define class |E|:
+
+\begin{lstlisting-nobreak}
+class E[@miniboxed T, @miniboxed U] extends D[T, U] {
+  override def foo(t: T, u: U): Int = 1
+}
+\end{lstlisting-nobreak}
+
+The common trait is:
+
+\begin{lstlisting-nobreak}
+trait E[@miniboxed T, @miniboxed U] extends D[T,U] {
+  override def foo(t: T, u: U): Int
+  def foo_MM(T_TypeTag: Byte, U_TypeTag: Byte, t: Long, u: Long): Int
+  def foo_ML(T_TypeTag: Byte, t: Long, u: U): Int
+  def foo_LM(U_TypeTag: Byte, t: T, u: Long): Int
+}
+\end{lstlisting-nobreak}
+
+And the specialized variant for corresponding to both type parameters being primitive types is:
+
+\begin{lstlisting-nobreak}
+class E_MM[Tsp, Usp] extends D_M[Tsp,Usp] with E[Tsp,Usp] {
+  private[this] val E_MM|T_TypeTag: Byte = _
+  private[this] val E_MM|U_TypeTag: Byte = _
+  override def foo(t: Tsp, u: Usp): Int = // redirect to foo_MM
+  def foo_MM(T_TypeTag: Byte, U_TypeTag: Byte, t: Long, u: Long): Int = 3
+  def foo_ML(T_TypeTag: Byte, t: Long, u: Usp): Int = // redirect to foo_MM
+  def foo_LM(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo_MM
+  override def foo_M(U_TypeTag: Byte, t: Tsp, u: Long): Int = // redirect to foo_MM
+}
+\end{lstlisting-nobreak}
+
+The |E_MM| class contains an unexpected member: |foo_M|. This method is generated since the class must override the method with the same name in class |D_M|, which does not have a corresponding equivalent with the same name in class |E_MM|. This is a feature inherited from the specialization transformation.
+
+\subsection{Inner classes}
+
+Inner classes pose an interesting challenge for the transformation:
+
+\begin{lstlisting-nobreak}
+class C[@miniboxed T] {
+  class E(t: T)
+}
+\end{lstlisting-nobreak}
+
+They can be translated in two ways: either (1) create a single inner class |D|, which boxes and (2) duplicate class D in each specialization. The current version of the miniboxing plug-in implements solution (1) and warns the user:
+
+\begin{lstlisting-nobreak}
+$ mb-scalac inner.scala
+inner.scala:2: warning: The class E will not be miniboxed based on type parameter(s) T of miniboxed class C. To have it specialized, add the type parameters of class C, marked with "@miniboxed" to the definition of class E and instantiate it explicitly passing the type parameters from class C:
+  class E(t: T)
+        ^
+one warning found
+\end{lstlisting-nobreak}
+
+Instead, if the class E is located inside a method, it will be automatically duplicated, according to solution (2).
+
+\subsection{Binary Compatibility}
+
+As explained in Chapter \ref{chapter:intro}, data representation transformations are not binary compatible. Another compatibility question that can be asked is what happens if a library is compiled with the miniboxing plugin and then a client tries to use it without adding the miniboxing plugin. In such scenarios, the compilation should fail:
+
+\begin{lstlisting-nobreak}
+$ cat C.scala
+class C[@miniboxed T]
+
+$ cat D.scala
+class D extends C[Int]
+
+$ mb-scalac C.scala
+
+$ scalac D.scala
+D.scala:1: error: The class C can only be referred to when using the miniboxing plugin. Please see scala-miniboxing.org.
+class D extends C[Int]
+                ^
+one error found
+\end{lstlisting-nobreak}
+
+Indeed, the miniboxing plugin annotates all transformed classes with a special marker that prevents the vanilla compiler from referring to them. The underlying mechanism is a general annotation, called |@compileTimeOnly(message: String)| that prevents the compiler from emitting any reference to a symbol in the backend. When the miniboxing plugin is active, transformed classes have the annotation automatically removed, so the backend can refer to the symbols. However, when the miniboxing plugin is not active, the transformed classes loaded from the classpath maintain their annotation, preventing the compilation process.

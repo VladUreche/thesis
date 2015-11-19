@@ -1,7 +1,7 @@
 \section{Ad hoc Data Representation Transformation}
 \label{ildl:sec:ildl}
 
-The Ad hoc Data Representation (ADR) transformation adds two new elements to existing data representation transformations: (1) it enables custom, programmer-defined alternative representations and (2) it allows the transformation to take place in limited scopes, ranging from expressions all the way to method and class definitions. This allows programmers to use locally optimal transformations that may be suboptimal or even incorrect for code outside the given scope.
+The Ad hoc Data Representation (ADR) transformation adds two new elements to the existing Late Data Layout (LDL) mechanism: (1) it enables custom, programmer-defined alternative representations and (2) it allows the transformation to take place in limited scopes, ranging from expressions all the way to method and class definitions. This allows programmers to use locally optimal transformations that may be suboptimal or even incorrect for code outside the given scope.
 
 Section \ref{ildl:sec:automating} showed how the ADR transformation is triggered by the |adrt| marker. The running example is reproduced below for quick reference:\footnote{In the following paragraphs, the |gcd| method is assumed to be always transformed, so we will skip the |ADRT| suffix, which was used in the Motivation section (\S\ref{ildl:sec:problem}) to mark the transformed version of the method.}
 
@@ -38,7 +38,7 @@ Since the description objects can accommodate very different transformations, as
 
 \subsubsection*{Bypass Methods}
 
-The description object can optionally include bypass methods, which correspond to the methods exposed by the high-level type, but instead operate on values encoded in the representation type. Bypass methods allow the transformation to avoid coercing receivers to the high-level type by rewriting dynamically dispatched calls to their corresponding statically-resolved bypass method calls, as shown in section \S\ref{ildl:sec:ldl:oo-patterns}. Method call rewriting in |adrt| scopes is more general, and we describe it   in section \S\ref{ildl:sec:ildl:method}.
+The description object can optionally include bypass methods, which correspond to the methods exposed by the high-level type, but instead operate on values encoded in the representation type. Bypass methods allow the transformation to avoid coercing receivers to the high-level type by rewriting dynamically dispatched calls to their corresponding statically-resolved bypass method calls. Method call rewriting in |adrt| scopes is more general, and we describe it in section \S\ref{ildl:sec:ildl:method}.
 
 
 \subsubsection*{Generic Transformations}
@@ -185,7 +185,7 @@ adrt(`TtoU`) {             // T -> U
 }
 \end{lstlisting-nobreak}
 
-It may seem natural that the value |t| will be transformed to use the |V| representation type: first, converting from |T| to |U| and then from |U| to |V|. Unfortunately, the underlying mechanism, Late Data Layout \cite{ldl}, only allows values to undergo one representation change in the \coerce{} phase. Thus, to enable cascading scopes, we would have to either run the \coerce{} phase until a fixpoint or extend both the theory and the implementation to handle multiple conversions in a single run, neither of which is a straightforward extension.
+It may seem natural that the value |t| will be transformed to use the |V| representation type: first, converting from |T| to |U| and then from |U| to |V|. Unfortunately, the underlying mechanism, Late Data Layout, only allows values to undergo one representation change in the \coerce{} phase. Thus, to enable cascading scopes, we would have to either run the \coerce{} phase until a fixpoint or extend both the theory and the implementation to handle multiple conversions in a single run, neither of which is a straightforward extension.
 Therefore, in the current approach, we disallow cascading scopes:
 
 \begin{lstlisting-nobreak}
@@ -306,7 +306,7 @@ adrt(`IntPairComplexToLongComplex`) {
 }
 \end{lstlisting-nobreak}
 
-When handling method calls on an encoded receiver, the default LDL behavior is very conservative: it decodes the value back to its high-level type, which exposes the original method and generates a dynamically-dispatched call (\S\ref{ildl:sec:ldl:oo-patterns}):
+When handling method calls on an encoded receiver, the default LDL behavior is very conservative: it decodes the value back to its high-level type, which exposes the original method and generates a dynamically-dispatched call:
 
 \begin{lstlisting-nobreak}
 val n: Long = ...
@@ -560,6 +560,6 @@ val a: Any = n              // does not trigger the reverse
 println(a)
 \end{lstlisting-nobreak}
 
-This resulting code breaks semantics because no coercion is applied to |a|, since |Long| is a subtype of |Any|. In turn, the output becomes |4294967296| instead of |(1, 0)|. As we saw in \S\ref{ildl:sec:drt}, the missing coercion is correctly inserted when annotations track the value representation, since annotations are orthogonal to the host language type system.
+This resulting code breaks semantics because no coercion is applied to |a|, since |Long| is a subtype of |Any|. In turn, the output becomes |4294967296| instead of |(1, 0)|. Using the LDL mechanism, the missing coercion is correctly inserted when annotations track the value representation, since annotations are orthogonal to the host language type system.
 
 With this, we presented the Ad hoc Data Representation Transformation mechanism and how it interacts with other language features to guarantee transformation correctness. The next section describes the architecture and implementation of our Scala compiler plugin.

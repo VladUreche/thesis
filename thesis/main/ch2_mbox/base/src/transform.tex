@@ -38,7 +38,9 @@ This section will work its way from small examples to describing the new element
 \subsubsection*{Type Bytes}
 \label{mbox:sec-mb-traf-type-bytes}
 
-Type-encoding bytes (or type bytes for short) record the original type of the miniboxed values. Translating the following example shows when type bytes are necessary:
+In some cases, such as calling the |toString| method on a generic type, the original type of the miniboxed value needs to be recorded. In the current approach, since we only consider primitive types, all we need is an integral type with enough distinct values for each primitive type. In this case, a byte suffices. A more general approach, that also works for value classes, is presented in Section \ref{mbox:subsec-mb-dispatching}, where the encoding descriptor is an object.
+
+The need for type-encoding bytes (or type bytes) is shown by the following example:
 
 \begin{lstlisting-nobreak}
  def print[@minispec T](value: T): Unit = println(value.toString)

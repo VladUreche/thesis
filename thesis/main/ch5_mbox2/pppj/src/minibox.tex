@@ -56,7 +56,7 @@ Lacking Project Valhalla's virtual machine support, Scala specialization generat
 
 \subsection{Miniboxing}
 
-Taking a low level perspective, we can observe the fact that all primitive types in the Scala programming language fit within 64 bits. This is the main idea that motivated the miniboxing transformation \cite{miniboxing}: instead of creating separate versions of the code for each primitive type alone, we can create a single one, which stores 64-bit encoded values, much like C's untagged union. The previous example:
+Taking a low level perspective, we can observe the fact that all primitive types in the Scala programming language fit within 64 bits. This is the main idea that motivated the miniboxing transformation: instead of creating separate versions of the code for each primitive type alone, we can create a single one, which stores 64-bit encoded values, much like C's untagged union. The previous example:
 
 \begin{lstlisting-nobreak}
  def identity[`@miniboxed` T](t: T): T = t
@@ -71,7 +71,7 @@ Is compiled\footnote{In the rest of the chapter we assume the miniboxing Scala c
  val five: int= `minibox2int`(identity`_M`(`int2minibox`(5)))
 \end{lstlisting-nobreak}
 
-Alert readers will notice the |minibox2int| and |int2minibox| transformations act exactly like the boxing coercions in the case of erased generics. This is true: the values are being coerced to the miniboxed representation, much like boxing in the case of erasure. Yet, our benchmarks on the Java Virtual Machine platform have shown that the miniboxing conversion cost is completely eliminated when just-in-time compiling to native 64-bit code. Further benchmarking has shown that the code matches the performance of specialized code within a 10\% slowdown due to coercions \cite{miniboxing}, compared to a 10x slowdown in the case of boxing.
+Alert readers will notice the |minibox2int| and |int2minibox| transformations act exactly like the boxing coercions in the case of erased generics. This is true: the values are being coerced to the miniboxed representation, much like boxing in the case of erasure. Yet, our benchmarks on the Java Virtual Machine platform have shown that the miniboxing conversion cost is completely eliminated when just-in-time compiling to native 64-bit code. Further benchmarking has shown that the code matches the performance of specialized code within a 10\% slowdown due to coercions, compared to a 10x slowdown in the case of boxing.
 
 There is an ellipsis in the definition of the |identity_M| method, which stands for what we call a type byte: a byte describing the type encoded in the long integer, allowing operations such as |toString|, |hashCode| or |equals| to be executed correctly on encoded values:
 
@@ -99,7 +99,7 @@ It automatically gets transformed in the compiler pipeline to:
  string`_M`(BOOL, bool2minibox(true))
 \end{lstlisting-nobreak}
 
-Knowing the type byte, the |minibox2string| can do its magic: decoding the long integer into a ``true'' or ``false'' string, depending on the encoded value. Although seemingly simple, the code transformation to implement the miniboxing transformation is actually rather tricky \cite{miniboxing-linkedlist, ldl, ildl-tech}.
+Knowing the type byte, the |minibox2string| can do its magic: decoding the long integer into a ``true'' or ``false'' string, depending on the encoded value. Although seemingly simple, the code transformation to implement the miniboxing transformation is actually rather tricky, as shown in Chapter \ref{chapter:ldl}.
 
 So far, we have only looked at methods, but transforming classes poses even greater challenges.
 

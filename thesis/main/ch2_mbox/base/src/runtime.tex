@@ -1,17 +1,17 @@
 \section{Miniboxing Bulk Storage Optimization}
 \label{mbox:sec-runtime}
 
-Arrays are Java's bulk storage facility. They can store value types or references to heap objects. This is done efficiently, as values are stored one after the other in contiguous blocks of memory and access is done in constant time. Their characteristics make arrays good candidates for internal data structures in collections and algorithms.
+Arrays are Java's bulk storage facility. They can store primitive types or references to heap objects. This is done efficiently, as values are stored one after the other in contiguous blocks of memory and access is done in constant time. Their characteristics make arrays good candidates for internal data structures in collections and algorithms.
 
 But in order to implement compact storage and constant access overhead, arrays are monomorphic under the hood, with separate (and incompatible) variants for each of the primitive value types. What's more, each array type has its own specific bytecode instructions to manipulate it.
 
 The goal we set forth was to match the performance of monomorphic arrays in the context of miniboxing-encoded values. To this end, we had two alternatives to implementing arrays for miniboxed values: use arrays of long integers to store the encoded values or use monomorphic arrays for each type, and encode or decode values at each access.
 
-\topic{Storing encoded values in arrays provides} the advantage of uniformity: all the code in the minibox-specialized class uses the |Long| representation and array access is done in a single instruction. Although this representation wastes heap space, especially for small value types such as boolean or byte, this is not the main drawback: it is incompatible with the rest of the Scala code.
+\topic{Storing encoded values in arrays provides} the advantage of uniformity: all the code in the minibox-specialized class uses the |Long| representation and array access is done in a single instruction. Although this representation wastes heap space, especially for small primitive types such as boolean or byte, this is not the main drawback: it is incompatible with the rest of the Scala code.
 
-In order to stay compatible with Java, Scala code uses monomorphic arrays for each value type. Therefore arrays of long integers in miniboxed classes must not be allowed to escape from the transformed class, otherwise they may crash outside code attempting to read or write them. To maintain compatibility, we could convert escaping arrays to their monomorphic forms. But the conversion would introduce delays and would break aliasing, as writes from the outside code would not be visible in the miniboxed code and vice versa. Since completely prohibiting escaping arrays severely restricts the programs that can use miniboxing, this solution becomes unusable in practice.
+In order to stay compatible with Java, Scala code uses monomorphic arrays for each primitive type. Therefore arrays of long integers in miniboxed classes must not be allowed to escape from the transformed class, otherwise they may crash outside code attempting to read or write them. To maintain compatibility, we could convert escaping arrays to their monomorphic forms. But the conversion would introduce delays and would break aliasing, as writes from the outside code would not be visible in the miniboxed code and vice versa. Since completely prohibiting escaping arrays severely restricts the programs that can use miniboxing, this solution becomes unusable in practice.
 
-\topic{Thus, the only choice left is to use arrays in their mo\-no\-mor\-phic format for each value type,} so we maintain compatibility with the rest of the Scala code. This decision led to another problem: any array access requires a call to the miniboxing runtime support which performs a dispatch on the type byte. Depending on the type byte's value, the array is cast to its correct type and the corresponding bytecode instruction for accessing it is used. This is followed by the encoding operation, which converts the read value to a long integer. The following snippet shows the array read operation implemented in the miniboxing runtime support code:
+\topic{Thus, the only choice left is to use arrays in their mo\-no\-mor\-phic format for each primitive type,} so we maintain compatibility with the rest of the Scala code. This decision led to another problem: any array access requires a call to the miniboxing runtime support which performs a dispatch on the type byte. Depending on the type byte's value, the array is cast to its correct type and the corresponding bytecode instruction for accessing it is used. This is followed by the encoding operation, which converts the read value to a long integer. The following snippet shows the array read operation implemented in the miniboxing runtime support code:
 
 \begin{lstlisting-nobreak}
  def array_get[T](array: Array[T], idx: Int, tag: Byte): Minibox = tag match {
@@ -77,7 +77,7 @@ miniboxed, dispatcher                   &             2.1 \optpm{0.6}&          
 specialized                             &             2.0 \optpm{0.6}&              2.4 \optpm{0.4}\\
 monomorphic                             &             2.1 \optpm{0.6}&              N/A  \\
 \end{tabular}
-\caption[Performance results for reversing an array buffer]{The time in milliseconds necessary for reversing an array buffer of 3 million integers. Performance varies based on how many value types have been used before (Single Context vs. Multi Context).}
+\caption[Performance results for reversing an array buffer]{The time in milliseconds necessary for reversing an array buffer of 3 million integers. Performance varies based on how many primitive types have been used before (Single Context vs. Multi Context).}
 \label{mbox:tbl-mb-simple}
 \end{table}
 
@@ -108,7 +108,7 @@ The running times presented in table \ref{mbox:tbl-mb-simple} correspond to reve
  }
 \end{lstlisting-nobreak}
 
-\topic{Ideally, this switch should be done as early as possible, even as soon as class instantiation.} This can be done using an object-oriented approach: instead of passing a byte value during class instantiation and later switching on it, we can pass objects which encode the runtime operations for a single type, much like the where objects in PolyJ \cite{myers-polyj}. We call this object the dispatcher. The dispatcher for each value type encodes a common set of operations such as array get and set. For example, |IntDispatcher| encodes the operations for integers:
+\topic{Ideally, this switch should be done as early as possible, even as soon as class instantiation.} This can be done using an object-oriented approach: instead of passing a byte value during class instantiation and later switching on it, we can pass objects which encode the runtime operations for a single type, much like the where objects in PolyJ \cite{myers-polyj}. We call this object the dispatcher. The dispatcher for each primitive type encodes a common set of operations such as array get and set. For example, |IntDispatcher| encodes the operations for integers:
 
 \begin{lstlisting-nobreak}
  abstract class Dispatcher {
@@ -119,7 +119,7 @@ The running times presented in table \ref{mbox:tbl-mb-simple} correspond to reve
  object IntDispatcher extends Dispatcher { ... }
 \end{lstlisting-nobreak}
 
-Dispatcher objects are passed to the miniboxed class during instantiation and have final semantics. In the |reverse| benchmark, this would replace the type byte switches by method invocations, which could be inlined. Dispatchers make forced inlining and loop unswitching redundant. With the final |dispatcher| field set at construction time, the |reverse_M| inner loop body can have array access inlined and optimized: (``miniboxed,  dispatcher'' in tables \ref{mbox:tbl-mb-simple} and \ref{mbox:tbl-mb-classloading})
+Dispatcher objects are passed to the miniboxed class during instantiation and have final semantics. Additionally, using objects to encode the value type scales beyond primitive types and to value classes. In the |reverse| benchmark, this would replace the type byte switches by method invocations, which could be inlined. Dispatchers make forced inlining and loop unswitching redundant. With the final |dispatcher| field set at construction time, the |reverse_M| inner loop body can have array access inlined and optimized: (``miniboxed,  dispatcher'' in tables \ref{mbox:tbl-mb-simple} and \ref{mbox:tbl-mb-classloading})
 
 \begin{lstlisting-nobreak}
  // inlined getElement:
@@ -130,6 +130,6 @@ Dispatcher objects are passed to the miniboxed class during instantiation and ha
  dispatcher.array_update(...)
 \end{lstlisting-nobreak}
 
-\topic{Despite their clear advantages, in practice dispatchers can be used with at most two different value types.} This happens because the HotSpot Java Virtual Machine inlines the dispatcher code at the call site and installs guards that check the object's runtime type. The inline cache works for two receivers, but if we try to swap the dispatcher a third time, the callsite becomes megamorphic. In the megamorphic state, the |array_get| and |array_set| code is not inlined, hence the disappointing results for the ``Multi Context'' scenario.
+\topic{Despite their clear advantages, in practice dispatchers can be used with at most two different primitive types.} This happens because the HotSpot Java Virtual Machine inlines the dispatcher code at the call site and installs guards that check the object's runtime type. The inline cache works for two receivers, but if we try to swap the dispatcher a third time, the callsite becomes megamorphic. In the megamorphic state, the |array_get| and |array_set| code is not inlined, hence the disappointing results for the ``Multi Context'' scenario.
 
-\topic{Interestingly, specialization performs equally well in both ``Single Context'' and ``Multi Context'' scenarios.} The explanation lies in the bytecode duplication: each specialized class contains a different body for the reverse method, and the profiles for each method do not interact. Accordingly, the results for integers are not influenced by the other value types used. This insight motivated the load-time cloning and specialization, which is described in the next section.
+\topic{Interestingly, specialization performs equally well in both ``Single Context'' and ``Multi Context'' scenarios.} The explanation lies in the bytecode duplication: each specialized class contains a different body for the reverse method, and the profiles for each method do not interact. Accordingly, the results for integers are not influenced by the other primitive types used. This insight motivated the load-time cloning and specialization, which is described in the next section.

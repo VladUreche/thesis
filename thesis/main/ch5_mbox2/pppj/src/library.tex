@@ -85,7 +85,7 @@ We show three approaches to eliminating the boxing overhead when calling special
 
 
 
-\subsubsection*{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach \cite{miniboxing}. However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{mbox2:sec:mbarrays}).
+\subsubsection*{New API.} In some cases, the API and guarantees are hardcoded into the platform. This is the case for the Scala |Array| class, for which the original miniboxing plugin chose the accessors approach (Chapter \ref{chapter:miniboxing}). However, a better tradeoff is achieved by defining a new |MbArray| class with a similar API but different guarantees. This approach will be briefly mentioned in the Arrays subsection (\S\ref{mbox2:sec:mbarrays}).
 
 The next sections discuss the three methods above.
 
@@ -242,7 +242,7 @@ In the above code, |f| is statically known to be of type |Function[Int]|, thanks
 
 Converting |MbFunctionX| objects to |FunctionX| easy, since each |MbFunctionX| object contains its |FunctionX| counterpart in the |functionX| field.
 
-By transforming the function representation, we have eliminated the overhead of calling functions completely. Furthermore, using the previous two strategies to minimize the conversion overhead, we enabled function-heavy applications to achieve speedups between 2 and 14x \cite{ildl-tech, ildl-plugin-wiki}.
+By transforming the function representation, we have eliminated the overhead of calling functions completely. Furthermore, using the previous two strategies to minimize the conversion overhead, we enabled function-heavy applications to achieve speedups between 2 and 14x \cite{ildl-plugin-wiki}.
 
 \subsection{Arrays}
 \label{mbox2:sec:mbarrays}

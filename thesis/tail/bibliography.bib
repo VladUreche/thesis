@@ -1,3 +1,4 @@
+
 @techreport{atc13,
 	Address = {California},
 	Author = {{Applied Technology Council}},
@@ -48,6 +49,13 @@ author={Musser, DavidR. and Stepanov, AlexanderA.},
  title = {{Design and Implementation of Generics for the .NET Common Language Runtime}},
  booktitle = {PLDI},
  year = {2001},
+}
+
+@Book{dot-net-compiling,
+  title={{Compiling for the .NET CLR}},
+  author={Gough, John},
+  publisher={Printic Hall},
+  year={2002}
 }
 
 @Misc{jsr-generics,
@@ -426,12 +434,15 @@ url = {http://x10-lang.org/}
   year =     {2006}
 }
 
-@book{scala-odersky,
+@Book{scala-odersky,
   title={{Programming in Scala: A Comprehensive Step-by-step Guide}},
   author={Odersky, Martin and Spoon, Lex and Venners, Bill},
   year={2008},
-  publisher={Artima Inc}
+  publisher={Artima Inc},
+  address   = "Walnut Creek, CA",
+  edition   = "second edition"
 }
+
 
 @inproceedings{x10-fast-dispatch,
   title={{Fast Method Dispatch and Effective Use of Primitives for Reified Generics in Managed {X10}}},
@@ -876,8 +887,13 @@ url = {http://x10-lang.org/}
 
 
 @online{ldl-www,
-  title={{The Late Data Layout website}},
+  title={{The Late Data Layout Plugin website}},
   url={http://scala-ldl.org}
+}
+
+@online{ildl-www,
+  title={{The Data-Centric Metaprogramming Plugin website}},
+  url={http://scala-ildl.org}
 }
 
 @phdthesis{tiark-thesis,
@@ -1100,6 +1116,11 @@ url = {http://x10-lang.org/}
   url = {http://pnwscala.org}
 }
 
+@online{scala-js,
+  title = {{Scala-js webstie}},
+  url = {https://web.archive.org/web/20151013162305/http://www.scala-js.org/}
+}
+
 @online{tuple-bench,
   title = {{Tuple Accessors Pull Request}},
   url = {https://github.com/miniboxing/miniboxing-plugin/pull/199}
@@ -1139,6 +1160,16 @@ url = {http://x10-lang.org/}
   title = {{RRB-Vector benchmarks}},
   url = {https://github.com/milosstojanovic/miniboxing-plugin/tree/rrbvector/tests/lib-bench/src/miniboxing/benchmarks/rrbvector}
 }
+
+@inproceedings{nicolas-rrbvectors,
+  title={{RRB Vector: A Practical General Purpose Immutable Sequence}},
+  author={Stucki, Nicolas and Rompf, Tiark and Ureche, Vlad and Bagwell, Phil},
+  booktitle={ICFP '15},
+  pages={342--354},
+  year={2015},
+  organization={ACM}
+}
+
 
 @online{yourkit,
   title = {{YourKit Profiler}},
@@ -1328,5 +1359,32 @@ url = {http://x10-lang.org/}
   number={3},
   pages={245--265},
   year={2004},
+  publisher={Springer}
+}
+
+@inproceedings{de-wael-onward,
+  title={{Just-in-time Data Structures}},
+  author={De Wael, Mattias and Marr, Stefan and De Koster, Joeri and Sartor, Jennifer B and De Meuter, Wolfgang},
+  booktitle={Onward! '15},
+  pages={61--75},
+  year={2015},
+  organization={ACM}
+}
+
+@inproceedings{de-wael-icooolps,
+  title={{Data Interface + Algorithms = Efficient Programs: Separating Logic from Representation to Improve Performance}},
+  author={De Wael, Mattias and Marr, Stefan and De Meuter, Wolfgang},
+  booktitle={ICOOOLPS'15},
+  pages={2},
+  year={2014},
+  organization={ACM}
+}
+
+@incollection{traytel-hindley-milner-coercions,
+  title={Extending Hindley-Milner Type Inference with Coercive Structural Subtyping},
+  author={Traytel, Dmitriy and Berghofer, Stefan and Nipkow, Tobias},
+  booktitle={Programming Languages and Systems},
+  pages={89--104},
+  year={2011},
   publisher={Springer}
 }
